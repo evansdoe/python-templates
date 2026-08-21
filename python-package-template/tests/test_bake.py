@@ -133,6 +133,53 @@ def test_danger_toggle(cookies):
     assert (on.project_path / "scripts" / "danger" / "package.json").exists()
 
 
+def test_danger_rules_extracted_to_shared_module(cookies):
+    """Rule logic lives in danger-rules.ts; dangerfile.ts is just config."""
+    result = bake(cookies, include_danger="yes")
+    danger_dir = result.project_path / "scripts" / "danger"
+    assert (danger_dir / "danger-rules.ts").exists()
+    dangerfile = (danger_dir / "dangerfile.ts").read_text()
+    assert "runDanger" in dangerfile
+    assert "fail(" not in dangerfile
+    assert "schedule(" not in dangerfile
+
+
+def test_danger_ci_fails_on_errors(cookies):
+    """--failOnErrors is invoked directly in CI (not a package.json script
+    here) -- without it, fail() rules never actually fail the job."""
+    result = bake(cookies, include_danger="yes", ci_platform="both")
+    gitlab_danger_yml = (result.project_path / ".gitlab" / "ci" / "danger.yml").read_text()
+    assert "--failOnErrors" in gitlab_danger_yml
+
+    github_ci_yml = (result.project_path / ".github" / "workflows" / "ci.yml").read_text()
+    assert "--failOnErrors" in github_ci_yml
+
+
+def test_danger_scripts_use_biome(cookies):
+    result = bake(cookies, include_danger="yes", ci_platform="both")
+    danger_dir = result.project_path / "scripts" / "danger"
+    assert (danger_dir / "biome.json").exists()
+    package_json = (danger_dir / "package.json").read_text()
+    assert "@biomejs/biome" in package_json
+    assert '"lint": "biome lint"' in package_json
+
+    gitlab_danger_yml = (result.project_path / ".gitlab" / "ci" / "danger.yml").read_text()
+    assert "pnpm lint" in gitlab_danger_yml
+    assert "pnpm format" in gitlab_danger_yml
+
+    github_ci_yml = (result.project_path / ".github" / "workflows" / "ci.yml").read_text()
+    assert "pnpm lint" in github_ci_yml
+    assert "pnpm format" in github_ci_yml
+
+
+def test_dockerfile_has_no_unused_dev_stage(cookies):
+    """The dev stage was vestigial -- nothing referenced it (no devcontainer
+    build target, no CI job)."""
+    result = bake(cookies, include_docker="yes")
+    dockerfile = (result.project_path / "Dockerfile").read_text()
+    assert "AS dev" not in dockerfile
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # publish_to_pypi: release.yml always exists, only its content changes
 # ──────────────────────────────────────────────────────────────────────────

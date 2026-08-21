@@ -33,9 +33,3 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 USER app
 CMD ["python", "-c", "import {{ cookiecutter.__module_name }}; print({{ cookiecutter.__module_name }}.__version__)"]
-
-# ---------- dev ----------
-FROM build AS dev
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --all-groups
-ENV PATH="/app/.venv/bin:$PATH"
-CMD ["bash"]

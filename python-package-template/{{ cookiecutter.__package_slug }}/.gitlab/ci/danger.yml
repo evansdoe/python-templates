@@ -7,5 +7,7 @@ danger:
     - corepack enable
     - cd scripts/danger && pnpm install --frozen-lockfile
   script:
+    - pnpm lint
+    - pnpm format
     # Requires DANGER_GITLAB_API_TOKEN (project access token, api scope, Reporter role).
     - pnpm danger ci --failOnErrors

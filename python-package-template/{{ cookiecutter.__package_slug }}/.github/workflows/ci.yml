@@ -122,6 +122,10 @@ jobs:
           cache-dependency-path: scripts/danger/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
         working-directory: scripts/danger
+      - run: pnpm lint
+        working-directory: scripts/danger
+      - run: pnpm format
+        working-directory: scripts/danger
       - run: pnpm danger ci --failOnErrors
         working-directory: scripts/danger
         env:
