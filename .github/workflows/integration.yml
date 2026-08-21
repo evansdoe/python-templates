@@ -1,0 +1,63 @@
+# Cross-template integration test.
+#
+# py-workspace-member can't be verified in isolation: its own bake tests
+# confirm the pre_gen warning doesn't crash and the dependency-wiring string
+# renders, but not that a member actually drops into a workspace and
+# `uv sync`/`uv lock` succeeds with a real sibling dependency edge. This goes
+# further than test-py-workspace-member.yml's own integration job by baking
+# two members — one depending on the other — into the same workspace.
+#
+# Now that both templates live in one checkout, this needs no cross-repo
+# checkout step; it points cookiecutter straight at the sibling directories.
+
+name: Cross-template integration
+
+on:
+  push:
+    branches: [main]
+    paths: ["py-workspace-template/**", "py-workspace-member/**"]
+  pull_request:
+    branches: [main]
+    paths: ["py-workspace-template/**", "py-workspace-member/**"]
+  workflow_dispatch:
+
+jobs:
+  workspace-plus-member:
+    name: Bake workspace + two members, uv sync the pair
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.12"
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.14
+
+      - name: Bake the workspace
+        run: |
+          uvx cookiecutter py-workspace-template --no-input \
+            workspace_name="Integration Workspace"
+
+      - name: Bake a member into the workspace
+        run: |
+          uvx cookiecutter py-workspace-member --no-input \
+            --output-dir integration-workspace/projects \
+            project_name="Integration Member"
+
+      - name: Bake a second member that depends on the first
+        run: |
+          uvx cookiecutter py-workspace-member --no-input \
+            --output-dir integration-workspace/projects \
+            project_name="Downstream Member" \
+            member_dependencies="integration-member"
+
+      - name: uv sync the assembled workspace
+        working-directory: integration-workspace
+        run: uv sync --all-packages --all-groups
+
+      - name: uv lock check (would fail if tool.uv.sources wiring is broken)
+        working-directory: integration-workspace
+        run: uv lock --check

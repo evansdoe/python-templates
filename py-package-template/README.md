@@ -9,7 +9,7 @@ Built on `uv` + `hatchling` + `ruff`, with CI for GitHub Actions, GitLab CI, or 
 
 ```bash
 uv tool install cruft
-cruft create git@github.com:evansdoe/py-package-template.git
+cruft create git@github.com:evansdoe/python-templates.git --directory py-package-template
 ```
 
 Use the **SSH** URL if the template repo is private: GitHub has not accepted

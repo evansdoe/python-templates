@@ -1,13 +1,26 @@
-# Test the cookiecutter template across parameter permutations.
-# Runs on every push and PR to ensure template changes don't break generation.
+# Test the py-workspace-member cookiecutter template across parameter
+# permutations. Scoped to this subdirectory so unrelated changes elsewhere
+# in the monorepo don't trigger it.
+#
+# Triggers on py-workspace-template changes too: this template's own slow
+# integration test bakes into a real py-workspace-template workspace, and
+# now that both live in the same checkout it can actually run instead of
+# skipping for lack of a WORKSPACE_TEMPLATE_PATH.
 
-name: Test Template
+name: Test py-workspace-member
 
 on:
   push:
     branches: [main]
+    paths: ["py-workspace-member/**", "py-workspace-template/**"]
   pull_request:
     branches: [main]
+    paths: ["py-workspace-member/**", "py-workspace-template/**"]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: py-workspace-member
 
 jobs:
   # Fast tests: file existence, feature toggles, YAML validity, Jinja leak detection
@@ -31,11 +44,14 @@ jobs:
       - name: Run template tests (fast)
         run: uv run pytest tests/ -n auto -v -m "not slow"
 
-  # Slow tests: actually run uv sync inside generated workspaces
+  # Slow tests: bakes this member into a real py-workspace-template workspace
+  # and runs uv sync over the pair.
   test-integration:
     name: Integration tests (uv sync)
     runs-on: ubuntu-latest
     needs: test-matrix
+    env:
+      WORKSPACE_TEMPLATE_PATH: ${{ github.workspace }}/py-workspace-template
     steps:
       - uses: actions/checkout@v4
 

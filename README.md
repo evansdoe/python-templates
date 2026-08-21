@@ -16,11 +16,24 @@ Is this repo going to hold more than one Python project?
                                          then py-workspace-member (per project)
 ```
 
-| Template                                                                     | Use for                                            |
-| ---------------------------------------------------------------------------- | -------------------------------------------------- |
-| [`py-package-template`](https://github.com/evansdoe/py-package-template)     | A standalone repo shipping a single Python package |
-| [`py-workspace-template`](https://github.com/evansdoe/py-workspace-template) | A uv-workspace monorepo root hosting many projects |
-| [`py-workspace-member`](https://github.com/evansdoe/py-workspace-member)     | Adding a project inside an existing workspace      |
+| Template                                             | Use for                                            |
+| ----------------------------------------------------- | -------------------------------------------------- |
+| [`py-package-template`](py-package-template)         | A standalone repo shipping a single Python package |
+| [`py-workspace-template`](py-workspace-template)     | A uv-workspace monorepo root hosting many projects |
+| [`py-workspace-member`](py-workspace-member)         | Adding a project inside an existing workspace      |
+
+All three live in this one repository. Cruft/Cookiecutter target a specific
+template with `--directory`:
+
+```bash
+uv tool install cruft
+cruft create git@github.com:evansdoe/python-templates.git --directory py-package-template
+cruft create git@github.com:evansdoe/python-templates.git --directory py-workspace-template
+cruft create git@github.com:evansdoe/python-templates.git --directory py-workspace-member --output-dir projects/
+```
+
+`cruft update` remembers the `directory` it was created with (recorded in the
+generated project's `.cruft.json`), so later updates need no extra flag.
 
 ## Shared stack
 
@@ -50,8 +63,12 @@ uv run poe fmt | lint | types | test | cov | check | all
 
 ## Verified
 
-Each template was generated in several configurations and the output checked:
-all TOML/YAML/JSON parses, no unrendered Jinja, and for real workspaces with two
-members under both root shapes — `ruff format --check`, `ruff check`,
-`mypy --strict`, `pytest`, `mkdocs build --strict`, `licensecheck` and `uv build`
-all pass on generated code, including root-to-member and member-to-member imports.
+Each template's `tests/test_bake.py` bakes it across its parameter matrix and
+checks the output: no unrendered Jinja, valid YAML, correct feature-toggle
+routing, and (behind `--run-slow`) an actual `uv sync`. A separate
+[`integration.yml`](.github/workflows/integration.yml) workflow bakes a
+workspace plus two members — one depending on the other — and runs
+`uv sync` / `uv lock --check` over the assembled result, since that pairing
+can't be verified by testing either template alone. All of this runs in CI
+on every push and PR, scoped by path so a change to one template doesn't
+trigger the others' workflows.

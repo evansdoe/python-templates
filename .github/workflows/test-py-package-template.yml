@@ -1,13 +1,21 @@
-# Test the cookiecutter template across parameter permutations.
-# Runs on every push and PR to ensure template changes don't break generation.
+# Test the py-package-template cookiecutter template across parameter
+# permutations. Scoped to this subdirectory so unrelated changes elsewhere
+# in the monorepo don't trigger it.
 
-name: Test Template
+name: Test py-package-template
 
 on:
   push:
     branches: [main]
+    paths: ["py-package-template/**"]
   pull_request:
     branches: [main]
+    paths: ["py-package-template/**"]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: py-package-template
 
 jobs:
   # Fast tests: file existence, feature toggles, YAML validity, Jinja leak detection
