@@ -4,8 +4,8 @@
   "project_name": "First Project",
   "project_description": "A project inside the workspace.",
   "version": "0.1.0",
-  "python_version": "3.12",
-  "min_python_version": "3.11",
+  "python_version": "3.14",
+  "min_python_version": "3.14",
   "project_kind": [
     "library",
     "application",

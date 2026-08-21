@@ -1,0 +1,59 @@
+# Test the cookiecutter template across parameter permutations.
+# Runs on every push and PR to ensure template changes don't break generation.
+#
+# The cross-template integration test (baking this member into a real
+# py-workspace-template workspace) needs WORKSPACE_TEMPLATE_PATH set to a
+# checkout of that repo, so it runs in python-templates' integration
+# workflow instead — it's skipped here for lack of that checkout.
+
+name: Test Template
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Fast tests: file existence, feature toggles, YAML validity, Jinja leak detection
+  test-matrix:
+    name: Test template generation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.12"
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.14
+
+      - name: Install testing dependencies
+        run: uv sync --all-groups
+
+      - name: Run template tests (fast)
+        run: uv run pytest tests/ -n auto -v -m "not slow"
+
+  # Slow tests: local uv-sync checks (the cross-template workspace test skips here)
+  test-integration:
+    name: Integration tests (uv sync)
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.12"
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.14
+
+      - name: Install testing dependencies
+        run: uv sync --all-groups
+
+      - name: Run integration tests
+        run: uv run pytest tests/ -v -m slow --run-slow
