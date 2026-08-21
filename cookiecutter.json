@@ -16,8 +16,8 @@
     "Proprietary"
   ],
   "copyright_year": "2026",
-  "python_version": "3.12",
-  "min_python_version": "3.11",
+  "python_version": "3.14",
+  "min_python_version": "3.14",
   "ci_platform": [
     "github",
     "gitlab",
