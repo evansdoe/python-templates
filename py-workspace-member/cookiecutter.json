@@ -1,0 +1,29 @@
+{
+  "full_name": "Evans Doe Ocansey",
+  "email": "evans@equivariantlabs.ai",
+  "project_name": "First Project",
+  "project_description": "A project inside the workspace.",
+  "version": "0.1.0",
+  "python_version": "3.14",
+  "min_python_version": "3.14",
+  "project_kind": [
+    "library",
+    "application",
+    "research"
+  ],
+  "include_docs": [
+    "no",
+    "yes"
+  ],
+  "custom_gitlab_pipeline": [
+    "no",
+    "yes"
+  ],
+  "member_dependencies": "",
+  "ruff_override": [
+    "no",
+    "yes"
+  ],
+  "__project_slug": "{{ cookiecutter.project_name|lower|replace(' ', '-')|replace('_', '-') }}",
+  "__module_name": "{{ cookiecutter.project_name|lower|replace(' ', '_')|replace('-', '_') }}"
+}

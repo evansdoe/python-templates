@@ -1,0 +1,20 @@
+# Optional per-member pipeline.
+#
+# The workspace root normally generates a default test job for this member. If
+# this file exists, the root triggers it as a child pipeline instead, so this is
+# the place for anything specific to {{ cookiecutter.__project_slug }}
+# (extra services, longer timeouts, GPU runners, data fixtures...).
+
+stages:
+  - test
+
+test:{{ cookiecutter.__project_slug }}:
+  stage: test
+  image: $UV_IMAGE
+  script:
+    - uv sync --package {{ cookiecutter.__project_slug }} --no-default-groups --group test
+    - uv run --no-sync pytest projects/{{ cookiecutter.__project_slug }} --cov=projects/{{ cookiecutter.__project_slug }} --cov-report=term --junitxml=report.xml
+  artifacts:
+    reports:
+      junit: report.xml
+    when: always
