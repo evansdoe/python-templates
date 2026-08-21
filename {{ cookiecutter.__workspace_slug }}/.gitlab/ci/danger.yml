@@ -1,0 +1,11 @@
+danger:
+  stage: lint
+  image: node:22-bookworm-slim
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  before_script:
+    - corepack enable
+    - cd scripts/danger && pnpm install --frozen-lockfile
+  script:
+    # Requires DANGER_GITLAB_API_TOKEN (project access token, api scope, Reporter role).
+    - pnpm danger ci --failOnErrors

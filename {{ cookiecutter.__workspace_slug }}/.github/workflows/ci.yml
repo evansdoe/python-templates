@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: {% raw %}${{ github.workflow }}-${{ github.ref }}{% endraw %}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.5.29"
+
+jobs:
+  # Lint, format and type checks run once over the whole workspace.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: {% raw %}${{ env.UV_VERSION }}{% endraw %}
+          enable-cache: true
+      - run: uv sync --no-default-groups --only-group lint
+      - run: uv run --no-sync ruff format --check .
+      - run: uv run --no-sync ruff check --output-format=github .
+{%- if cookiecutter.type_checker != "none" %}
+
+  types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: {% raw %}${{ env.UV_VERSION }}{% endraw %}
+          enable-cache: true
+      - run: uv sync --all-packages --no-default-groups --group lint
+{%- if cookiecutter.type_checker == "mypy" %}
+      - run: uv run --no-sync mypy
+{%- else %}
+      - run: uv run --no-sync ty check
+{%- endif %}
+{%- endif %}
+
+  # Which members were touched? Adding a project needs no edit to this file.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: {% raw %}${{ steps.find.outputs.matrix }}{% endraw %}
+      any: {% raw %}${{ steps.find.outputs.any }}{% endraw %}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: find
+        run: |
+          REF="{% raw %}${{ github.base_ref || github.event.repository.default_branch }}{% endraw %}"
+          git fetch --no-tags origin "$REF" || true
+          MATRIX=$(python scripts/ci/discover_projects.py --format github --base "origin/$REF")
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          COUNT=$(printf '%s' "$MATRIX" | python -c 'import json,sys; print(len(json.load(sys.stdin)["project"]))')
+          if [ "$COUNT" = "0" ]; then echo "any=false" >> "$GITHUB_OUTPUT"; else echo "any=true" >> "$GITHUB_OUTPUT"; fi
+
+  test:
+    needs: [discover]
+    if: needs.discover.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: {% raw %}${{ fromJSON(needs.discover.outputs.matrix) }}{% endraw %}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: {% raw %}${{ env.UV_VERSION }}{% endraw %}
+          enable-cache: true
+      - name: Sync {% raw %}${{ matrix.project }}{% endraw %}
+        run: uv sync --package {% raw %}${{ matrix.project }}{% endraw %} --no-default-groups --group test
+      - name: Test {% raw %}${{ matrix.project }}{% endraw %}
+        run: |
+          uv run --no-sync pytest projects/{% raw %}${{ matrix.project }}{% endraw %} \
+            --cov=projects/{% raw %}${{ matrix.project }}{% endraw %} --cov-report=term-missing
+
+  licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: {% raw %}${{ env.UV_VERSION }}{% endraw %}
+          enable-cache: true
+      - run: uv sync --all-packages --no-default-groups --group license
+      - run: uv run --no-sync licensecheck
+{%- if cookiecutter.include_danger == "yes" %}
+
+  danger:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: scripts/danger/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: scripts/danger
+      - run: pnpm danger ci --failOnErrors
+        working-directory: scripts/danger
+        env:
+          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+{%- endif %}

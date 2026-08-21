@@ -1,0 +1,121 @@
+{%- if cookiecutter.root_kind == "application" %}
+# Application workspace root: this package IS the deliverable, and the projects
+# under projects/ are internal libraries it composes.
+#
+# Every member the root uses must be listed twice: once in `dependencies` and
+# once in [tool.uv.sources]. Without the sources entry uv looks for it on PyPI
+# and `uv lock` fails. Members that the root does not use still belong to the
+# workspace via the members glob, and are still covered by the shared lockfile.
+
+[project]
+name = "{{ cookiecutter.__workspace_slug }}"
+version = "0.1.0"
+description = "{{ cookiecutter.workspace_description }}"
+readme = "README.md"
+requires-python = ">={{ cookiecutter.min_python_version }}"
+{%- if cookiecutter.license != "Proprietary" %}
+license = "{{ cookiecutter.license }}"
+license-files = ["LICENSE"]
+{%- endif %}
+authors = [{ name = "{{ cookiecutter.full_name }}", email = "{{ cookiecutter.email }}" }]
+dependencies = [
+    # "geo-core",
+]
+
+[project.scripts]
+{{ cookiecutter.__workspace_slug }} = "{{ cookiecutter.__root_module }}.__main__:main"
+
+[tool.uv.sources]
+# geo-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{ cookiecutter.__root_module }}"]
+
+[tool.uv.workspace]
+members = ["projects/*"]
+
+[tool.uv]
+default-groups = ["dev"]
+{%- else %}
+# Virtual workspace root — this file defines shared tooling and the member list.
+# It is not itself a distributable package; each member under projects/ is.
+#
+# Members are wired in by the glob below, not by a dependency edge, so adding a
+# project needs no edit here. `uv sync` installs every member editable.
+
+[tool.uv.workspace]
+members = ["projects/*"]
+
+[tool.uv]
+default-groups = ["dev"]
+{%- endif %}
+
+[dependency-groups]
+dev = [
+    { include-group = "lint" },
+    { include-group = "test" },
+{%- if cookiecutter.include_docs == "yes" %}
+    { include-group = "docs" },
+{%- endif %}
+    { include-group = "license" },
+    "poethepoet>=0.30",
+{%- if cookiecutter.include_precommit == "yes" %}
+    "pre-commit>=4.0",
+{%- endif %}
+]
+lint = [
+    "ruff>=0.9",
+{%- if cookiecutter.type_checker == "mypy" %}
+    "mypy>=1.14",
+{%- elif cookiecutter.type_checker == "ty" %}
+    "ty>=0.0.1a1",
+{%- endif %}
+]
+test = ["pytest>=8.3", "pytest-cov>=6.0"]
+{%- if cookiecutter.include_docs == "yes" %}
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.27"]
+{%- endif %}
+license = ["licensecheck>=2024.3"]
+{%- if cookiecutter.type_checker == "mypy" %}
+
+[tool.mypy]
+python_version = "{{ cookiecutter.min_python_version }}"
+files = [{% if cookiecutter.root_kind == "application" %}"src", "tests", {% endif %}"projects"]
+# Members share test file names (every project has tests/test_smoke.py), which
+# mypy cannot map to distinct modules. Type checking covers src/; pytest covers
+# the tests themselves.
+exclude = ['^projects/[^/]+/tests/']
+strict = true
+warn_unreachable = true
+{%- elif cookiecutter.type_checker == "ty" %}
+
+[tool.ty.src]
+include = [{% if cookiecutter.root_kind == "application" %}"src", "tests", {% endif %}"projects"]
+exclude = ["projects/*/tests"]
+{%- endif %}
+
+[tool.poe.tasks]
+fmt = "ruff format ."
+lint = "ruff check --fix ."
+"lint:check" = "ruff check ."
+"fmt:check" = "ruff format --check ."
+{%- if cookiecutter.type_checker == "mypy" %}
+types = "mypy"
+{%- elif cookiecutter.type_checker == "ty" %}
+types = "ty check"
+{%- endif %}
+test = "pytest"
+cov = "pytest --cov=projects --cov-report=term-missing --cov-report=xml"
+check = ["fmt:check", "lint:check"{% if cookiecutter.type_checker != "none" %}, "types"{% endif %}]
+all = ["check", "test"]
+projects = "python scripts/ci/discover_projects.py --format list --all"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+# importlib import mode lets members reuse test file names.
+addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
+testpaths = [{% if cookiecutter.root_kind == "application" %}"tests", {% endif %}"projects"]

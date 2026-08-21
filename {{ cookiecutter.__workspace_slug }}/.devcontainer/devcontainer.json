@@ -1,0 +1,30 @@
+{
+    "name": "{{ cookiecutter.__workspace_slug }}",
+    "image": "mcr.microsoft.com/devcontainers/python:1-{{ cookiecutter.python_version }}-bookworm",
+    "features": {
+        "ghcr.io/va-h/devcontainers-features/uv:1": { "version": "latest" }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "charliermarsh.ruff",
+                "ms-python.python",
+                "tamasfe.even-better-toml"{% if cookiecutter.type_checker == "mypy" %},
+                "ms-python.mypy-type-checker"{% elif cookiecutter.type_checker == "ty" %},
+                "astral-sh.ty"{% endif %}
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": "explicit",
+                        "source.fixAll": "explicit"
+                    }
+                }
+            }
+        }
+    },
+    "postCreateCommand": "uv sync --all-packages --all-groups{% if cookiecutter.include_precommit == 'yes' %} && (test -d .git && uv run pre-commit install || echo 'not a git repo yet, skipping pre-commit install'){% endif %}"
+}
