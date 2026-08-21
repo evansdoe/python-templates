@@ -1,0 +1,114 @@
+[project]
+name = "{{ cookiecutter.__package_slug }}"
+version = "{{ cookiecutter.version }}"
+description = "{{ cookiecutter.package_description }}"
+readme = "README.md"
+requires-python = ">={{ cookiecutter.min_python_version }}"
+{%- if cookiecutter.license != "Proprietary" %}
+license = "{{ cookiecutter.license }}"
+license-files = ["LICENSE"]
+{%- endif %}
+authors = [{ name = "{{ cookiecutter.full_name }}", email = "{{ cookiecutter.email }}" }]
+keywords = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: {{ cookiecutter.min_python_version }}",
+    "Programming Language :: Python :: {{ cookiecutter.python_version }}",
+    "Typing :: Typed",
+{%- if cookiecutter.license == "Proprietary" %}
+    "Private :: Do Not Upload",
+{%- endif %}
+]
+dependencies = []
+
+[project.urls]
+Homepage = "{{ cookiecutter.__repo_url }}"
+Repository = "{{ cookiecutter.__repo_url }}"
+Changelog = "{{ cookiecutter.__repo_url }}/blob/main/CHANGELOG.md"
+{%- if cookiecutter.include_docs == "yes" %}
+Documentation = "{{ cookiecutter.__repo_url }}"
+{%- endif %}
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{ cookiecutter.__module_name }}"]
+
+[dependency-groups]
+dev = [
+    { include-group = "lint" },
+    { include-group = "test" },
+{%- if cookiecutter.include_docs == "yes" %}
+    { include-group = "docs" },
+{%- endif %}
+    { include-group = "license" },
+    "poethepoet>=0.30",
+{%- if cookiecutter.include_precommit == "yes" %}
+    "pre-commit>=4.0",
+{%- endif %}
+]
+lint = [
+    "ruff>=0.9",
+{%- if cookiecutter.type_checker == "mypy" %}
+    "mypy>=1.14",
+{%- elif cookiecutter.type_checker == "ty" %}
+    "ty>=0.0.1a1",
+{%- endif %}
+]
+test = ["pytest>=8.3", "pytest-cov>=6.0"]
+{%- if cookiecutter.include_docs == "yes" %}
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.27"]
+{%- endif %}
+license = ["licensecheck>=2024.3"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["src/{{ cookiecutter.__module_name }}"]
+branch = true
+
+[tool.coverage.report]
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
+show_missing = true
+{%- if cookiecutter.type_checker == "mypy" %}
+
+[tool.mypy]
+python_version = "{{ cookiecutter.min_python_version }}"
+files = ["src", "tests"]
+strict = true
+warn_unreachable = true
+{%- elif cookiecutter.type_checker == "ty" %}
+
+[tool.ty.src]
+include = ["src", "tests"]
+{%- endif %}
+
+[tool.licensecheck]
+using = "PEP631"
+format = "ansi"
+
+[tool.poe.tasks]
+fmt = "ruff format ."
+lint = "ruff check --fix ."
+"lint:check" = "ruff check ."
+"fmt:check" = "ruff format --check ."
+{%- if cookiecutter.type_checker == "mypy" %}
+types = "mypy"
+{%- elif cookiecutter.type_checker == "ty" %}
+types = "ty check"
+{%- endif %}
+test = "pytest"
+cov = "pytest --cov --cov-report=term-missing --cov-report=xml"
+licenses = "licensecheck"
+{%- if cookiecutter.include_docs == "yes" %}
+docs = "mkdocs serve"
+"docs:build" = "mkdocs build --strict"
+{%- endif %}
+check = ["fmt:check", "lint:check"{% if cookiecutter.type_checker != "none" %}, "types"{% endif %}]
+all = ["check", "test"]

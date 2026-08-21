@@ -1,0 +1,29 @@
+ruff:
+  stage: lint
+  script:
+    - uv sync --no-default-groups --only-group lint
+    - uv run --no-sync ruff format --check .
+    - uv run --no-sync ruff check --output-format=gitlab > code-quality.json || true
+    - uv run --no-sync ruff check .
+  artifacts:
+    reports:
+      codequality: code-quality.json
+    when: always
+{%- if cookiecutter.type_checker != "none" %}
+
+types:
+  stage: lint
+  script:
+    - uv sync --no-default-groups --group lint
+{%- if cookiecutter.type_checker == "mypy" %}
+    - uv run --no-sync mypy
+{%- else %}
+    - uv run --no-sync ty check
+{%- endif %}
+{%- endif %}
+
+licenses:
+  stage: lint
+  script:
+    - uv sync --no-default-groups --group license
+    - uv run --no-sync licensecheck
