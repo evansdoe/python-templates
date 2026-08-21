@@ -1,10 +1,10 @@
 # Cross-template integration test.
 #
-# py-workspace-member can't be verified in isolation: its own bake tests
+# python-workspace-member can't be verified in isolation: its own bake tests
 # confirm the pre_gen warning doesn't crash and the dependency-wiring string
 # renders, but not that a member actually drops into a workspace and
 # `uv sync`/`uv lock` succeeds with a real sibling dependency edge. This goes
-# further than test-py-workspace-member.yml's own integration job by baking
+# further than test-python-workspace-member.yml's own integration job by baking
 # two members — one depending on the other — into the same workspace.
 #
 # Now that both templates live in one checkout, this needs no cross-repo
@@ -15,10 +15,10 @@ name: Cross-template integration
 on:
   push:
     branches: [main]
-    paths: ["py-workspace-template/**", "py-workspace-member/**"]
+    paths: ["python-workspace-template/**", "python-workspace-member/**"]
   pull_request:
     branches: [main]
-    paths: ["py-workspace-template/**", "py-workspace-member/**"]
+    paths: ["python-workspace-template/**", "python-workspace-member/**"]
   workflow_dispatch:
 
 jobs:
@@ -38,18 +38,18 @@ jobs:
 
       - name: Bake the workspace
         run: |
-          uvx cookiecutter py-workspace-template --no-input \
+          uvx cookiecutter python-workspace-template --no-input \
             workspace_name="Integration Workspace"
 
       - name: Bake a member into the workspace
         run: |
-          uvx cookiecutter py-workspace-member --no-input \
+          uvx cookiecutter python-workspace-member --no-input \
             --output-dir integration-workspace/projects \
             project_name="Integration Member"
 
       - name: Bake a second member that depends on the first
         run: |
-          uvx cookiecutter py-workspace-member --no-input \
+          uvx cookiecutter python-workspace-member --no-input \
             --output-dir integration-workspace/projects \
             project_name="Downstream Member" \
             member_dependencies="integration-member"

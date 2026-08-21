@@ -1,10 +1,10 @@
-"""Tests for the py-workspace-member Cookiecutter template.
+"""Tests for the python-workspace-member Cookiecutter template.
 
 Uses pytest-cookies to bake the template with various parameter combinations
 and verify the generated project is structurally correct.
 
-This template's two distinguishing behaviors, absent from py-package-template
-and py-workspace-template, get dedicated coverage:
+This template's two distinguishing behaviors, absent from python-package-template
+and python-workspace-template, get dedicated coverage:
   - it renders correctly even though it depends on a parent workspace it
     cannot see when baked standalone (pre_gen only warns, never fails);
   - it wires sibling dependencies through both `dependencies` and
@@ -232,20 +232,20 @@ def test_yaml_validity(cookies):
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# Integration test — bake this member INTO a real py-workspace-template
+# Integration test — bake this member INTO a real python-workspace-template
 # workspace and confirm the pair actually locks and syncs together.
 #
 # pytest-cookies' `cookies.bake()` always bakes to an isolated pytest tmpdir
 # and has no `output_dir` option, so this drives `cookiecutter()` directly
 # for both bakes to reproduce the real `--output-dir projects/` workflow.
-# Skipped unless a sibling checkout of py-workspace-template is available,
+# Skipped unless a sibling checkout of python-workspace-template is available,
 # since that's what CI wires up (see python-templates' integration workflow).
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.slow
 def test_integration_uv_sync_inside_workspace(tmp_path):
     workspace_template = os.environ.get("WORKSPACE_TEMPLATE_PATH")
     if not workspace_template:
-        pytest.skip("WORKSPACE_TEMPLATE_PATH not set — need a checkout of py-workspace-template")
+        pytest.skip("WORKSPACE_TEMPLATE_PATH not set — need a checkout of python-workspace-template")
 
     from cookiecutter.main import cookiecutter
 

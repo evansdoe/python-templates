@@ -1,7 +1,7 @@
-"""Tests for the py-package-template Cookiecutter template.
+"""Tests for the python-workspace-template Cookiecutter template.
 
 Uses pytest-cookies to bake the template with various parameter combinations
-and verify the generated project is structurally correct.
+and verify the generated workspace root is structurally correct.
 
 Test tiers:
   - test_bake_*: fast file-existence checks across the parameter matrix
@@ -21,9 +21,9 @@ DEFAULTS = {
     "full_name": "Test Author",
     "email": "test@example.com",
     "vcs_username": "testuser",
-    "package_name": "Test Package",
-    "package_description": "A test package",
-    "version": "0.1.0",
+    "workspace_name": "Test Workspace",
+    "workspace_description": "A test workspace",
+    "root_kind": "virtual",
     "license": "MIT",
     "copyright_year": "2026",
     "python_version": "3.14",
@@ -33,13 +33,12 @@ DEFAULTS = {
     "include_docs": "yes",
     "include_precommit": "yes",
     "include_devcontainer": "yes",
-    "include_docker": "no",
     "include_danger": "no",
-    "publish_to_pypi": "no",
 }
 
 CI_PLATFORMS = ["github", "gitlab", "both"]
 TYPE_CHECKERS = ["mypy", "ty", "none"]
+ROOT_KINDS = ["virtual", "application"]
 
 
 def bake(cookies, **overrides):
@@ -66,13 +65,51 @@ def collect_yaml_files(project_path):
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
 @pytest.mark.parametrize("type_checker", TYPE_CHECKERS)
-def test_bake_core_matrix(cookies, ci_platform, type_checker):
-    result = bake(cookies, ci_platform=ci_platform, type_checker=type_checker)
-    assert result.project_path.name == "test-package"
+@pytest.mark.parametrize("root_kind", ROOT_KINDS)
+def test_bake_core_matrix(cookies, ci_platform, type_checker, root_kind):
+    result = bake(cookies, ci_platform=ci_platform, type_checker=type_checker, root_kind=root_kind)
+    assert result.project_path.name == "test-workspace"
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# CI platform routing
+# root_kind: the one toggle most worth locking down — it decides whether
+# this repo is itself a package or purely a container for members.
+# ──────────────────────────────────────────────────────────────────────────
+@pytest.mark.parametrize("root_kind,expect_src", [("virtual", False), ("application", True)])
+def test_root_kind_controls_src_and_tests(cookies, root_kind, expect_src):
+    result = bake(cookies, root_kind=root_kind)
+    assert (result.project_path / "src").exists() == expect_src
+    assert (result.project_path / "tests").exists() == expect_src
+
+
+def test_application_root_has_project_scripts(cookies):
+    result = bake(cookies, root_kind="application")
+    pyproject = (result.project_path / "pyproject.toml").read_text()
+    assert "[project.scripts]" in pyproject
+    assert "[tool.uv.sources]" in pyproject
+
+
+def test_virtual_root_has_no_project_table(cookies):
+    result = bake(cookies, root_kind="virtual")
+    pyproject = (result.project_path / "pyproject.toml").read_text()
+    assert "[project]" not in pyproject
+    assert "[project.scripts]" not in pyproject
+
+
+@pytest.mark.parametrize("root_kind", ROOT_KINDS)
+def test_members_glob_always_present(cookies, root_kind):
+    result = bake(cookies, root_kind=root_kind)
+    assert 'members = ["projects/*"]' in (result.project_path / "pyproject.toml").read_text()
+
+
+def test_projects_dir_placeholder(cookies):
+    """projects/ ships with a .gitkeep so the empty dir survives git."""
+    result = bake(cookies)
+    assert (result.project_path / "projects" / ".gitkeep").exists()
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# CI platform routing — single ci.yml, no per-module workflow at this layer
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize(
     "ci_platform,expect_github,expect_gitlab",
@@ -80,78 +117,18 @@ def test_bake_core_matrix(cookies, ci_platform, type_checker):
 )
 def test_ci_platform_file_routing(cookies, ci_platform, expect_github, expect_gitlab):
     result = bake(cookies, ci_platform=ci_platform)
-    assert (result.project_path / ".github").exists() == expect_github
+    assert (result.project_path / ".github" / "workflows" / "ci.yml").exists() == expect_github
     assert (result.project_path / ".gitlab-ci.yml").exists() == expect_gitlab
     assert (result.project_path / ".gitlab").exists() == expect_gitlab
 
 
-def test_github_ci_files(cookies):
-    result = bake(cookies, ci_platform="github")
-    assert (result.project_path / ".github" / "workflows" / "ci.yml").exists()
-    assert (result.project_path / ".github" / "workflows" / "release.yml").exists()
+def test_discover_script_always_present(cookies):
+    result = bake(cookies)
+    assert (result.project_path / "scripts" / "ci" / "discover_projects.py").exists()
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# Feature toggles
-# ──────────────────────────────────────────────────────────────────────────
-def test_docker_toggle(cookies):
-    off = bake(cookies, include_docker="no")
-    assert not (off.project_path / "Dockerfile").exists()
-    assert not (off.project_path / ".dockerignore").exists()
-
-    on = bake(cookies, include_docker="yes")
-    assert (on.project_path / "Dockerfile").exists()
-    assert (on.project_path / ".dockerignore").exists()
-
-
-def test_devcontainer_toggle(cookies):
-    result = bake(cookies, include_devcontainer="no")
-    assert not (result.project_path / ".devcontainer").exists()
-
-
-def test_docs_toggle(cookies):
-    off = bake(cookies, include_docs="no")
-    assert not (off.project_path / "docs").exists()
-    assert not (off.project_path / "mkdocs.yml").exists()
-
-    on = bake(cookies, include_docs="yes")
-    assert (on.project_path / "mkdocs.yml").exists()
-    assert (on.project_path / "docs" / "index.md").exists()
-
-
-def test_precommit_toggle(cookies):
-    result = bake(cookies, include_precommit="no")
-    assert not (result.project_path / ".pre-commit-config.yaml").exists()
-
-
-def test_danger_toggle(cookies):
-    off = bake(cookies, include_danger="no")
-    assert not (off.project_path / "scripts" / "danger").exists()
-
-    on = bake(cookies, include_danger="yes")
-    assert (on.project_path / "scripts" / "danger" / "dangerfile.ts").exists()
-    assert (on.project_path / "scripts" / "danger" / "package.json").exists()
-
-
-# ──────────────────────────────────────────────────────────────────────────
-# publish_to_pypi: release.yml always exists, only its content changes
-# ──────────────────────────────────────────────────────────────────────────
-def test_publish_to_pypi_off(cookies):
-    result = bake(cookies, publish_to_pypi="no", ci_platform="github")
-    release = (result.project_path / ".github" / "workflows" / "release.yml").read_text()
-    assert "pypi:" not in release
-    assert "id-token: write" not in release
-
-
-def test_publish_to_pypi_on(cookies):
-    result = bake(cookies, publish_to_pypi="yes", ci_platform="github")
-    release = (result.project_path / ".github" / "workflows" / "release.yml").read_text()
-    assert "pypi:" in release
-    assert "id-token: write" in release
-
-
-# ──────────────────────────────────────────────────────────────────────────
-# Type checker routing
+# Type checker routing (note the projects/*/tests exclude, unique to this template)
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize("type_checker", TYPE_CHECKERS)
 def test_type_checker_pyproject(cookies, type_checker):
@@ -159,34 +136,50 @@ def test_type_checker_pyproject(cookies, type_checker):
     pyproject = (result.project_path / "pyproject.toml").read_text()
 
     if type_checker == "mypy":
-        assert '"mypy>=' in pyproject
         assert "[tool.mypy]" in pyproject
-        assert "[tool.ty.src]" not in pyproject
+        assert "exclude = ['^projects/[^/]+/tests/']" in pyproject
     elif type_checker == "ty":
-        assert '"ty>=' in pyproject
         assert "[tool.ty.src]" in pyproject
-        assert "[tool.mypy]" not in pyproject
+        assert 'exclude = ["projects/*/tests"]' in pyproject
     else:
-        assert '"mypy>=' not in pyproject
-        assert '"ty>=' not in pyproject
         assert "[tool.mypy]" not in pyproject
         assert "[tool.ty.src]" not in pyproject
 
 
-def test_type_checker_poe_task(cookies):
-    with_types = bake(cookies, type_checker="mypy")
-    assert "types" in (with_types.project_path / "pyproject.toml").read_text()
+# ──────────────────────────────────────────────────────────────────────────
+# Feature toggles
+# ──────────────────────────────────────────────────────────────────────────
+def test_danger_toggle(cookies):
+    off = bake(cookies, include_danger="no")
+    assert not (off.project_path / "scripts" / "danger").exists()
 
-    without_types = bake(cookies, type_checker="none")
-    pyproject = (without_types.project_path / "pyproject.toml").read_text()
-    assert 'types = "mypy"' not in pyproject
-    assert 'types = "ty check"' not in pyproject
+    on = bake(cookies, include_danger="yes")
+    assert (on.project_path / "scripts" / "danger" / "dangerfile.ts").exists()
 
 
-def test_py_typed_always_present(cookies):
-    """Unlike the type_checker-gated old template, py.typed here is unconditional."""
-    result = bake(cookies, type_checker="none")
-    assert (result.project_path / "src" / "test_package" / "py.typed").exists()
+def test_precommit_toggle(cookies):
+    result = bake(cookies, include_precommit="no")
+    assert not (result.project_path / ".pre-commit-config.yaml").exists()
+
+
+def test_devcontainer_toggle(cookies):
+    result = bake(cookies, include_devcontainer="no")
+    assert not (result.project_path / ".devcontainer").exists()
+
+
+def test_include_docs_only_affects_dependency_groups(cookies):
+    """include_docs adds the docs dependency group, but this template ships no
+    mkdocs.yml/docs/ of its own — unlike python-package-template and
+    python-workspace-member. Documents current behavior; flag to maintainer if
+    that asymmetry is unintentional."""
+    on = bake(cookies, include_docs="yes")
+    pyproject = (on.project_path / "pyproject.toml").read_text()
+    assert "mkdocs-material" in pyproject
+    assert not (on.project_path / "mkdocs.yml").exists()
+    assert not (on.project_path / "docs").exists()
+
+    off = bake(cookies, include_docs="no")
+    assert "mkdocs-material" not in (off.project_path / "pyproject.toml").read_text()
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -207,13 +200,6 @@ def test_license_content(cookies, license_choice, expected_text):
     assert expected_text in (result.project_path / "LICENSE").read_text()
 
 
-def test_proprietary_license_not_declared_in_pyproject(cookies):
-    result = bake(cookies, license="Proprietary")
-    pyproject = (result.project_path / "pyproject.toml").read_text()
-    assert 'license = "Proprietary"' not in pyproject
-    assert "Private :: Do Not Upload" in pyproject
-
-
 # ──────────────────────────────────────────────────────────────────────────
 # pre_gen_project.py validation
 # ──────────────────────────────────────────────────────────────────────────
@@ -227,13 +213,6 @@ def test_pre_gen_rejects_min_version_newer_than_target(cookies):
 def test_pre_gen_rejects_malformed_python_version(cookies):
     result = cookies.bake(extra_context={**DEFAULTS, "python_version": "3"})
     assert result.exit_code != 0
-
-
-def test_pre_gen_accepts_valid_versions(cookies):
-    result = cookies.bake(
-        extra_context={**DEFAULTS, "min_python_version": "3.13", "python_version": "3.15"}
-    )
-    assert result.exit_code == 0
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -251,24 +230,20 @@ def test_core_files_always_present(cookies):
         ".editorconfig",
         ".python-version",
         "ruff.toml",
-        "src/test_package/__init__.py",
-        "tests/test_smoke.py",
+        "scripts/ci/discover_projects.py",
+        ".vscode/extensions.json",
+        ".vscode/settings.json",
     ]:
         assert (result.project_path / path).exists(), f"{path} should always exist"
-
-
-def test_python_version_file(cookies):
-    result = bake(cookies, python_version="3.15")
-    content = (result.project_path / ".python-version").read_text().strip()
-    assert content == "3.15"
 
 
 # ──────────────────────────────────────────────────────────────────────────
 # Hygiene: no Jinja leaks, valid YAML
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
-def test_no_jinja_leaks(cookies, ci_platform):
-    result = bake(cookies, ci_platform=ci_platform)
+@pytest.mark.parametrize("root_kind", ROOT_KINDS)
+def test_no_jinja_leaks(cookies, ci_platform, root_kind):
+    result = bake(cookies, ci_platform=ci_platform, root_kind=root_kind)
     for root, _, files in os.walk(result.project_path):
         for f in files:
             path = os.path.join(root, f)
@@ -284,7 +259,7 @@ def test_no_jinja_leaks(cookies, ci_platform):
 def test_yaml_validity(cookies, ci_platform):
     result = bake(cookies, ci_platform=ci_platform)
     yaml_files = collect_yaml_files(result.project_path)
-    assert len(yaml_files) > 0, "Should have at least one YAML file"
+    assert len(yaml_files) > 0
 
     for f in yaml_files:
         with open(f) as fp:
@@ -298,12 +273,12 @@ def test_yaml_validity(cookies, ci_platform):
 # Integration tests — actually run uv sync (slow, needs network)
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.slow
-@pytest.mark.parametrize("type_checker", TYPE_CHECKERS)
-def test_integration_uv_sync(cookies, type_checker):
-    """Generated project can actually install dependencies with uv."""
-    result = bake(cookies, type_checker=type_checker)
+@pytest.mark.parametrize("root_kind", ROOT_KINDS)
+def test_integration_uv_sync(cookies, root_kind):
+    """Generated workspace root can actually install dependencies with uv."""
+    result = bake(cookies, root_kind=root_kind)
     proc = subprocess.run(
-        ["uv", "sync", "--all-groups"],
+        ["uv", "sync", "--all-packages", "--all-groups"],
         cwd=result.project_path,
         capture_output=True,
         text=True,

@@ -1,21 +1,21 @@
-# Test the py-package-template cookiecutter template across parameter
+# Test the python-workspace-template cookiecutter template across parameter
 # permutations. Scoped to this subdirectory so unrelated changes elsewhere
 # in the monorepo don't trigger it.
 
-name: Test py-package-template
+name: Test python-workspace-template
 
 on:
   push:
     branches: [main]
-    paths: ["py-package-template/**"]
+    paths: ["python-workspace-template/**"]
   pull_request:
     branches: [main]
-    paths: ["py-package-template/**"]
+    paths: ["python-workspace-template/**"]
   workflow_dispatch:
 
 defaults:
   run:
-    working-directory: py-package-template
+    working-directory: python-workspace-template
 
 jobs:
   # Fast tests: file existence, feature toggles, YAML validity, Jinja leak detection
@@ -39,7 +39,7 @@ jobs:
       - name: Run template tests (fast)
         run: uv run pytest tests/ -n auto -v -m "not slow"
 
-  # Slow tests: actually run uv sync inside generated projects
+  # Slow tests: actually run uv sync inside generated workspaces
   test-integration:
     name: Integration tests (uv sync)
     runs-on: ubuntu-latest

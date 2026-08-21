@@ -1,4 +1,4 @@
-# py-package-template
+# python-package-template
 
 A [Cookiecutter](https://cookiecutter.readthedocs.io) / [Cruft](https://cruft.github.io/cruft/)
 template for a **standalone Python package** — one repository, one distribution.
@@ -9,7 +9,7 @@ Built on `uv` + `hatchling` + `ruff`, with CI for GitHub Actions, GitLab CI, or 
 
 ```bash
 uv tool install cruft
-cruft create git@github.com:evansdoe/python-templates.git --directory py-package-template
+cruft create git@github.com:evansdoe/python-templates.git --directory python-package-template
 ```
 
 Use the **SSH** URL if the template repo is private: GitHub has not accepted

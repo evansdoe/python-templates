@@ -1,7 +1,7 @@
 [project]
-name = "py-workspace-member"
+name = "python-workspace-template"
 version = "1.0.0"
-description = "Cookiecutter template for a project inside an existing uv workspace."
+description = "Cookiecutter template for a uv workspace monorepo root."
 requires-python = ">=3.14"
 readme = "README.md"
 

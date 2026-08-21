@@ -1,14 +1,14 @@
-# py-workspace-member
+# python-workspace-member
 
 A Cookiecutter / Cruft template for a **single project inside an existing uv
-workspace** (see [`py-workspace-template`](../py-workspace-template)).
+workspace** (see [`python-workspace-template`](../python-workspace-template)).
 
 ## Use it
 
 Run from the **workspace root**, generating into `projects/`:
 
 ```bash
-cruft create git@github.com:evansdoe/python-templates.git --directory py-workspace-member --output-dir projects/
+cruft create git@github.com:evansdoe/python-templates.git --directory python-workspace-member --output-dir projects/
 uv sync --all-packages --all-groups
 ```
 

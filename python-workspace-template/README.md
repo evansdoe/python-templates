@@ -1,14 +1,14 @@
-# py-workspace-template
+# python-workspace-template
 
 A Cookiecutter / Cruft template for a **uv workspace monorepo** — one repository
 hosting many Python projects that share a single `uv.lock` and one dev toolchain.
 
-Pair it with [`py-workspace-member`](../py-workspace-member) to add projects.
+Pair it with [`python-workspace-member`](../python-workspace-member) to add projects.
 
 ## Use it
 
 ```bash
-cruft create git@github.com:evansdoe/python-templates.git --directory py-workspace-template
+cruft create git@github.com:evansdoe/python-templates.git --directory python-workspace-template
 cd my-workspace
 uv sync --all-packages --all-groups     # creates uv.lock — commit it
 ```

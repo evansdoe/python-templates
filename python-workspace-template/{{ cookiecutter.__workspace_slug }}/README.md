@@ -39,7 +39,7 @@ Generate one with the member template — the glob in `[tool.uv.workspace]` pick
 it up automatically, and CI discovers it with no pipeline edits:
 
 ```bash
-cruft create git@github.com:{{ cookiecutter.vcs_username }}/py-workspace-member.git --output-dir projects/
+cruft create git@github.com:{{ cookiecutter.vcs_username }}/python-workspace-member.git --output-dir projects/
 uv sync --all-packages --all-groups
 ```
 

@@ -48,7 +48,7 @@ if APPLICATION_ROOT:
     print("  This is an APPLICATION root: it is itself a package, and each member")
     print("  it uses must be added to both `dependencies` and [tool.uv.sources].\n")
 print("  Add your first project (from the workspace root):\n")
-print("    cruft create <py-workspace-member-url> --output-dir projects/")
+print("    cruft create <python-workspace-member-url> --output-dir projects/")
 print("    uv sync --all-packages --all-groups\n")
 if DANGER:
     print("  Danger.js needs a lockfile before CI will pass:\n")
