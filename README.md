@@ -16,11 +16,11 @@ Is this repo going to hold more than one Python project?
                                          then py-workspace-member (per project)
 ```
 
-| Template | Use for |
-| --- | --- |
-| [`py-package-template`](py-package-template) | A standalone repo shipping a single Python package |
-| [`py-workspace-template`](py-workspace-template) | A uv-workspace monorepo root hosting many projects |
-| [`py-workspace-member`](py-workspace-member) | Adding a project inside an existing workspace |
+| Template                                                                     | Use for                                            |
+| ---------------------------------------------------------------------------- | -------------------------------------------------- |
+| [`py-package-template`](https://github.com/evansdoe/py-package-template)     | A standalone repo shipping a single Python package |
+| [`py-workspace-template`](https://github.com/evansdoe/py-workspace-template) | A uv-workspace monorepo root hosting many projects |
+| [`py-workspace-member`](https://github.com/evansdoe/py-workspace-member)     | Adding a project inside an existing workspace      |
 
 ## Shared stack
 
