@@ -8,7 +8,7 @@ Pair it with [`py-workspace-member`](https://github.com/evansdoe/py-workspace-me
 ## Use it
 
 ```bash
-cruft create git@github.com:<you>/py-workspace-template.git
+cruft create git@github.com:evansdoe/py-workspace-template.git
 cd my-workspace
 uv sync --all-packages --all-groups     # creates uv.lock — commit it
 ```
