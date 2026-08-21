@@ -1,0 +1,11 @@
+# Member-local ruff overrides for {{ cookiecutter.__project_slug }}.
+#
+# `extend` is load-bearing: without it this file REPLACES the workspace root
+# config entirely and this member silently falls back to ruff's defaults.
+# Relative globs defined in the root (e.g. per-file-ignores) stay anchored to
+# the root directory when inherited this way.
+extend = "../../ruff.toml"
+
+# Add only what genuinely differs, for example:
+# [lint]
+# extend-ignore = ["D", "ANN"]

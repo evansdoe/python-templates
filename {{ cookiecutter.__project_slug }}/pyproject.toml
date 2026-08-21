@@ -1,0 +1,61 @@
+{%- set deps = cookiecutter.member_dependencies.split(',') | map('trim') | select | list %}
+[project]
+name = "{{ cookiecutter.__project_slug }}"
+version = "{{ cookiecutter.version }}"
+description = "{{ cookiecutter.project_description }}"
+readme = "README.md"
+requires-python = ">={{ cookiecutter.min_python_version }}"
+authors = [{ name = "{{ cookiecutter.full_name }}", email = "{{ cookiecutter.email }}" }]
+{%- if cookiecutter.project_kind == "research" %}
+classifiers = ["Private :: Do Not Upload"]
+{%- endif %}
+{% if deps -%}
+dependencies = [
+{%- for dep in deps %}
+    "{{ dep }}",
+{%- endfor %}
+]
+{%- else -%}
+dependencies = []
+{%- endif %}
+{%- if cookiecutter.project_kind == "application" %}
+
+[project.scripts]
+{{ cookiecutter.__project_slug }} = "{{ cookiecutter.__module_name }}.__main__:main"
+{%- endif %}
+{% if deps %}
+# Sibling workspace members must be sourced from the workspace. Without this
+# block uv looks for them on PyPI and `uv lock` fails with:
+#   `<name>` is included as a workspace member, but is missing an entry in
+#   `tool.uv.sources`
+[tool.uv.sources]
+{%- for dep in deps %}
+{{ dep }} = { workspace = true }
+{%- endfor %}
+{% endif %}
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{ cookiecutter.__module_name }}"]
+
+# Shared dev tooling (ruff, the type checker, poe) lives in the workspace root.
+# Only what this member needs to run its own tests is declared here, so that
+# `uv sync --package {{ cookiecutter.__project_slug }} --group test` works in isolation.
+[dependency-groups]
+test = ["pytest>=8.3", "pytest-cov>=6.0"]
+
+# Do NOT add a [tool.ruff] section here. Ruff treats the nearest config as
+# authoritative and does not merge it with the workspace root, so a section here
+# would silently drop every root rule for this member. To deviate, use a
+# ruff.toml alongside this file with `extend = "../../ruff.toml"`.
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+
+[tool.coverage.run]
+source = ["src/{{ cookiecutter.__module_name }}"]
+branch = true
