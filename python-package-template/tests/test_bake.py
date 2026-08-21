@@ -191,6 +191,27 @@ def test_dockerfile_has_no_unused_dev_stage(cookies):
     assert "AS dev" not in dockerfile
 
 
+@pytest.mark.parametrize("uv_version", ["latest", "0.12.5"])
+def test_dockerfile_uv_version_decoupled_from_python_version(cookies, uv_version):
+    """A combined python-version+uv-version tag (e.g.
+    ghcr.io/astral-sh/uv:0.12.5-python3.14-bookworm-slim) doesn't reliably
+    exist -- Astral doesn't publish every combination. Copying the uv binary
+    from a bare-tag stage (which always resolves) avoids that entirely."""
+    result = bake(cookies, include_docker="yes", uv_version=uv_version)
+    dockerfile = (result.project_path / "Dockerfile").read_text()
+    # The FROM line itself uses Docker's own ${UV_VERSION} substitution (resolved
+    # at `docker build` time), not cookiecutter's -- only the ARG default varies.
+    assert f"ARG UV_VERSION={uv_version}" in dockerfile
+    assert "FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv" in dockerfile
+    assert "COPY --from=uv /uv /uvx /bin/" in dockerfile
+
+
+def test_uv_version_defaults_to_latest(cookies):
+    result = bake(cookies, include_docker="yes")
+    dockerfile = (result.project_path / "Dockerfile").read_text()
+    assert "ARG UV_VERSION=latest" in dockerfile
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # publish_to_pypi: release.yml always exists, only its content changes
 # ──────────────────────────────────────────────────────────────────────────

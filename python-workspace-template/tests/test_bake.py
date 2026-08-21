@@ -125,10 +125,17 @@ def test_ci_platform_file_routing(cookies, ci_platform, expect_github, expect_gi
 def test_uv_version_not_pinned_stale(cookies):
     """UV_VERSION was hardcoded to 0.5.29, which predates Python 3.14 and
     broke CI the moment python_version's default moved to 3.14 -- "latest"
-    means this can't go stale the same way again."""
+    (now the default for the uv_version cookiecutter option) means this
+    can't go stale the same way again."""
     result = bake(cookies, ci_platform="github")
     ci_yml = (result.project_path / ".github" / "workflows" / "ci.yml").read_text()
     assert 'UV_VERSION: "latest"' in ci_yml
+
+
+def test_uv_version_configurable(cookies):
+    result = bake(cookies, ci_platform="github", uv_version="0.12.5")
+    ci_yml = (result.project_path / ".github" / "workflows" / "ci.yml").read_text()
+    assert 'UV_VERSION: "0.12.5"' in ci_yml
 
 
 def test_discover_script_always_present(cookies):

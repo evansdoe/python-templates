@@ -30,7 +30,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
         with:
-          version: "0.12.5"
+          version: "latest"
           enable-cache: true
 
       - name: Install Python

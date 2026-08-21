@@ -18,6 +18,7 @@
   "copyright_year": "2026",
   "python_version": "3.14",
   "min_python_version": "3.14",
+  "uv_version": "latest",
   "ci_platform": [
     "github",
     "gitlab",

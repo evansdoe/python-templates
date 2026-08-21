@@ -78,9 +78,10 @@ with *"is included as a workspace member, but is missing an entry in
 
 ## Options
 
-`license`, `python_version`, `min_python_version`, `ci_platform`
-(github/gitlab/both), `type_checker` (mypy/ty/none), `include_docs`,
-`include_precommit`, `include_devcontainer`, `include_danger`.
+`license`, `python_version`, `min_python_version`, `uv_version` (`latest` or a
+pin, e.g. `0.12.5`), `ci_platform` (github/gitlab/both), `type_checker`
+(mypy/ty/none), `include_docs`, `include_precommit`, `include_devcontainer`,
+`include_danger`.
 
 ## Note on type checking
 

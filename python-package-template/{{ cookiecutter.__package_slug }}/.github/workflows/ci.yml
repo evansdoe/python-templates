@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  UV_VERSION: "latest"
+  UV_VERSION: "{{ cookiecutter.uv_version }}"
 
 jobs:
   lint:

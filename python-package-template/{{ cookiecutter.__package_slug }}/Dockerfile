@@ -1,10 +1,20 @@
 # syntax=docker/dockerfile:1
 
 ARG PYTHON_VERSION={{ cookiecutter.python_version }}
-ARG UV_VERSION=0.5.29
+ARG UV_VERSION={{ cookiecutter.uv_version }}
+
+# Named stage rather than `COPY --from=ghcr.io/astral-sh/uv:${UV_VERSION}`
+# directly -- Docker doesn't expand ARGs in COPY --from='s image reference,
+# only in FROM. Decoupling PYTHON_VERSION from UV_VERSION this way (instead
+# of a combined python-version+uv-version tag) matters because Astral
+# doesn't publish every combination of the two, so a pinned UV_VERSION can
+# 404 against an arbitrary PYTHON_VERSION with the combined-tag approach.
+# ghcr.io/astral-sh/uv:${UV_VERSION} always resolves, "latest" included.
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 
 # ---------- build ----------
-FROM ghcr.io/astral-sh/uv:${UV_VERSION}-python${PYTHON_VERSION}-bookworm-slim AS build
+FROM python:${PYTHON_VERSION}-slim-bookworm AS build
+COPY --from=uv /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
