@@ -3,7 +3,7 @@
 A Cookiecutter / Cruft template for a **uv workspace monorepo** — one repository
 hosting many Python projects that share a single `uv.lock` and one dev toolchain.
 
-Pair it with [`py-workspace-member`](../py-workspace-member) to add projects.
+Pair it with [`py-workspace-member`](https://github.com/evansdoe/py-workspace-member) to add projects.
 
 ## Use it
 
@@ -53,12 +53,12 @@ python scripts/ci/discover_projects.py --format gitlab --base main
 
 ## Root shape: `root_kind`
 
-| | `virtual` (default) | `application` |
-| --- | --- | --- |
-| Repo ships | several independently released projects | one deliverable built from internal libraries |
-| Root `pyproject.toml` | no `[project]` table | a real package with `src/` and a console script |
-| Members are wired by | the `members = ["projects/*"]` glob alone | the glob, **plus** `dependencies` + `[tool.uv.sources]` for each member the root uses |
-| Adding a member | nothing to edit | register it in the root if the root uses it |
+|                       | `virtual` (default)                       | `application`                                                                         |
+| --------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| Repo ships            | several independently released projects   | one deliverable built from internal libraries                                         |
+| Root `pyproject.toml` | no `[project]` table                      | a real package with `src/` and a console script                                       |
+| Members are wired by  | the `members = ["projects/*"]` glob alone | the glob, **plus** `dependencies` + `[tool.uv.sources]` for each member the root uses |
+| Adding a member       | nothing to edit                           | register it in the root if the root uses it                                           |
 
 Membership never comes from a dependency edge: in both shapes `uv sync` installs
 every member editable and the single `uv.lock` covers all of them. Declaring a
