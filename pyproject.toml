@@ -1,0 +1,14 @@
+[project]
+name = "py-package-template"
+version = "1.0.0"
+description = "Cookiecutter template for a standalone Python package (uv + hatchling + ruff)."
+requires-python = ">=3.14"
+readme = "README.md"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cookies>=0.7.0",
+    "pytest-xdist>=3.5.0",
+    "pyyaml>=6.0",
+]

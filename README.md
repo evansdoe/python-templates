@@ -21,7 +21,7 @@ have a token configured (`gh auth login && gh auth setup-git`).
 | Variable                                | Values                                                       | Notes                                                                  |
 | --------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | `license`                               | MIT, Apache-2.0, BSD-3-Clause, GPL-3.0-or-later, Proprietary | Apache/GPL write a short notice; fetch the full text before publishing |
-| `python_version` / `min_python_version` | e.g. `3.12` / `3.11`                                         | Both end up in the CI test matrix                                      |
+| `python_version` / `min_python_version` | e.g. `3.14` / `3.14`                                         | Both end up in the CI test matrix                                      |
 | `ci_platform`                           | github, gitlab, both                                         | Unused pipeline files are deleted                                      |
 | `type_checker`                          | mypy, ty, none                                               | mypy is configured `strict`                                            |
 | `include_docs`                          | yes, no                                                      | MkDocs Material + mkdocstrings                                         |

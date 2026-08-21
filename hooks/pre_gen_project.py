@@ -23,7 +23,7 @@ if not re.fullmatch(r"[a-z0-9][a-z0-9._-]*[a-z0-9]", SLUG):
 
 for label, value in (("min_python_version", MIN_PY), ("python_version", PY)):
     if not re.fullmatch(r"3\.\d+", value):
-        errors.append(f"{label} must look like '3.12', got '{value}'.")
+        errors.append(f"{label} must look like '3.14', got '{value}'.")
 
 if not errors and tuple(map(int, MIN_PY.split("."))) > tuple(map(int, PY.split("."))):
     errors.append(f"min_python_version ({MIN_PY}) is newer than python_version ({PY}).")
