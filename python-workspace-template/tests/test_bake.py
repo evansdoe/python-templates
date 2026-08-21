@@ -122,6 +122,15 @@ def test_ci_platform_file_routing(cookies, ci_platform, expect_github, expect_gi
     assert (result.project_path / ".gitlab").exists() == expect_gitlab
 
 
+def test_uv_version_not_pinned_stale(cookies):
+    """UV_VERSION was hardcoded to 0.5.29, which predates Python 3.14 and
+    broke CI the moment python_version's default moved to 3.14 -- "latest"
+    means this can't go stale the same way again."""
+    result = bake(cookies, ci_platform="github")
+    ci_yml = (result.project_path / ".github" / "workflows" / "ci.yml").read_text()
+    assert 'UV_VERSION: "latest"' in ci_yml
+
+
 def test_discover_script_always_present(cookies):
     result = bake(cookies)
     assert (result.project_path / "scripts" / "ci" / "discover_projects.py").exists()

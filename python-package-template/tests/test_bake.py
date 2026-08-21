@@ -91,6 +91,17 @@ def test_github_ci_files(cookies):
     assert (result.project_path / ".github" / "workflows" / "release.yml").exists()
 
 
+def test_uv_version_not_pinned_stale(cookies):
+    """UV_VERSION was hardcoded to 0.5.29, which predates Python 3.14 and
+    broke CI the moment python_version's default moved to 3.14 -- "latest"
+    means this can't go stale the same way again."""
+    result = bake(cookies, ci_platform="github", publish_to_pypi="yes")
+    ci_yml = (result.project_path / ".github" / "workflows" / "ci.yml").read_text()
+    assert 'UV_VERSION: "latest"' in ci_yml
+    release_yml = (result.project_path / ".github" / "workflows" / "release.yml").read_text()
+    assert 'version: "latest"' in release_yml
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Feature toggles
 # ──────────────────────────────────────────────────────────────────────────
