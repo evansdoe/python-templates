@@ -1,0 +1,14 @@
+.git/
+.github/
+.gitlab/
+.venv/
+.uv-cache/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+node_modules/
+site/
+dist/
+htmlcov/
+**/__pycache__/
+*.egg-info/

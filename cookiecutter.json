@@ -1,0 +1,57 @@
+{
+  "full_name": "Evans Doe Ocansey",
+  "email": "evans@equivariantlabs.ai",
+  "vcs_username": "evansdoe",
+  "package_name": "My Package",
+  "package_description": "A short description of the package.",
+  "version": "0.1.0",
+  "license": [
+    "MIT",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "GPL-3.0-or-later",
+    "Proprietary"
+  ],
+  "copyright_year": "2026",
+  "python_version": "3.12",
+  "min_python_version": "3.11",
+  "ci_platform": [
+    "github",
+    "gitlab",
+    "both"
+  ],
+  "type_checker": [
+    "mypy",
+    "ty",
+    "none"
+  ],
+  "include_docs": [
+    "yes",
+    "no"
+  ],
+  "include_precommit": [
+    "yes",
+    "no"
+  ],
+  "include_devcontainer": [
+    "yes",
+    "no"
+  ],
+  "include_docker": [
+    "no",
+    "yes"
+  ],
+  "include_danger": [
+    "no",
+    "yes"
+  ],
+  "publish_to_pypi": [
+    "no",
+    "yes"
+  ],
+  "__package_slug": "{{ cookiecutter.package_name|lower|replace(' ', '-')|replace('_', '-') }}",
+  "__module_name": "{{ cookiecutter.package_name|lower|replace(' ', '_')|replace('-', '_') }}",
+  "__github_url": "https://github.com/{{ cookiecutter.vcs_username }}/{{ cookiecutter.__package_slug }}",
+  "__gitlab_url": "https://gitlab.com/{{ cookiecutter.vcs_username }}/{{ cookiecutter.__package_slug }}",
+  "__repo_url": "{% if cookiecutter.ci_platform == 'gitlab' %}{{ cookiecutter.__gitlab_url }}{% else %}{{ cookiecutter.__github_url }}{% endif %}"
+}

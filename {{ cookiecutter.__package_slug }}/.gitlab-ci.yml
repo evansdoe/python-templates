@@ -1,0 +1,38 @@
+# Root pipeline for {{ cookiecutter.__package_slug }}.
+# Per-stage job definitions live in .gitlab/ci/*.yml.
+
+stages:
+  - lint
+  - test
+  - build
+  - publish
+
+variables:
+  UV_IMAGE: "ghcr.io/astral-sh/uv:python{{ cookiecutter.python_version }}-bookworm-slim"
+  UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
+  UV_LINK_MODE: "copy"
+
+default:
+  image: $UV_IMAGE
+  cache:
+    key:
+      files:
+        - uv.lock
+    paths:
+      - .uv-cache
+  before_script:
+    - uv --version
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+include:
+  - local: .gitlab/ci/lint.yml
+  - local: .gitlab/ci/test.yml
+  - local: .gitlab/ci/build.yml
+{%- if cookiecutter.include_danger == "yes" %}
+  - local: .gitlab/ci/danger.yml
+{%- endif %}

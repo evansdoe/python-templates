@@ -1,0 +1,29 @@
+target-version = "py{{ cookiecutter.min_python_version|replace('.', '') }}"
+line-length = 88
+src = ["src", "tests"]
+
+[lint]
+select = [
+    "E", "W",    # pycodestyle
+    "F",         # pyflakes
+    "I",         # isort
+    "N",         # pep8-naming
+    "UP",        # pyupgrade
+    "B",         # flake8-bugbear
+    "C4",        # flake8-comprehensions
+    "SIM",       # flake8-simplify
+    "PTH",       # flake8-use-pathlib
+    "RUF",       # ruff-specific
+    "D",         # pydocstyle
+    "ANN",       # flake8-annotations
+]
+ignore = ["D203", "D213", "ANN401"]
+
+[lint.per-file-ignores]
+"tests/**" = ["D", "ANN", "S101"]
+
+[lint.pydocstyle]
+convention = "google"
+
+[format]
+docstring-code-format = true
