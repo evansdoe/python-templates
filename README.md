@@ -1,14 +1,14 @@
 # py-workspace-member
 
 A Cookiecutter / Cruft template for a **single project inside an existing uv
-workspace** (see [`py-workspace-template`](../py-workspace-template)).
+workspace** (see [`py-workspace-template`](https://github.com/evansdoe/py-workspace-member)).
 
 ## Use it
 
 Run from the **workspace root**, generating into `projects/`:
 
 ```bash
-cruft create git@github.com:<you>/py-workspace-member.git --output-dir projects/
+cruft create git@github.com:evansdoe/py-workspace-member.git --output-dir projects/
 uv sync --all-packages --all-groups
 ```
 
@@ -17,13 +17,13 @@ up, and CI discovers it automatically.
 
 ## Options
 
-| Variable | Values | Notes |
-| --- | --- | --- |
-| `project_kind` | library, application, research | `application` adds a `__main__.py` and a console script; `research` marks it not-for-upload |
-| `include_docs` | no, yes | A `docs/` stub |
-| `custom_gitlab_pipeline` | no, yes | Emits a member `.gitlab-ci.yml` that the workspace triggers instead of the default test job — for extra services, longer timeouts, GPU runners |
-| `member_dependencies` | comma-separated names, e.g. `geo-core, io-utils` | Sibling members this project imports; writes both `dependencies` and `[tool.uv.sources]` |
-| `ruff_override` | no, yes | Emits a `ruff.toml` containing only `extend = "../../ruff.toml"` |
+| Variable                 | Values                                           | Notes                                                                                                                                          |
+| ------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `project_kind`           | library, application, research                   | `application` adds a `__main__.py` and a console script; `research` marks it not-for-upload                                                    |
+| `include_docs`           | no, yes                                          | A `docs/` stub                                                                                                                                 |
+| `custom_gitlab_pipeline` | no, yes                                          | Emits a member `.gitlab-ci.yml` that the workspace triggers instead of the default test job — for extra services, longer timeouts, GPU runners |
+| `member_dependencies`    | comma-separated names, e.g. `geo-core, io-utils` | Sibling members this project imports; writes both `dependencies` and `[tool.uv.sources]`                                                       |
+| `ruff_override`          | no, yes                                          | Emits a `ruff.toml` containing only `extend = "../../ruff.toml"`                                                                               |
 
 The template warns if it cannot find `[tool.uv.workspace]` in a parent
 directory, which usually means you ran it from the wrong place.
