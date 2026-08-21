@@ -48,35 +48,6 @@ uv run poe fmt | lint | types | test | cov | check | all
   their own. A member that must deviate uses `extend = "../../ruff.toml"`;
   a bare member config silently replaces the root ruleset with ruff's defaults.
 
-## Publishing these templates
-
-```bash
-cd py-package-template
-git init -b main && git add -A && git commit -m "feat: initial template"
-gh repo create py-package-template --private --source=. --push
-```
-
-Then generate from them with the **SSH** URL:
-
-```bash
-cruft create git@github.com:<you>/py-package-template.git
-```
-
-## Why the HTTPS clone failed
-
-GitHub stopped accepting account passwords for git operations in 2021, and
-private repos prompt for credentials rather than returning 404. So
-`cruft create https://github.com/<you>/<private-template>` asks for a password
-that can never work. Either use the SSH URL above, or configure a token once:
-
-```bash
-gh auth login && gh auth setup-git
-```
-
-`cruft` writes whichever URL you used into the generated project's
-`.cruft.json`, and reuses it for `cruft update` — so prefer the SSH form for
-private templates.
-
 ## Verified
 
 Each template was generated in several configurations and the output checked:
