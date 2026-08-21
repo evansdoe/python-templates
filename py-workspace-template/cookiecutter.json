@@ -1,0 +1,52 @@
+{
+  "full_name": "Evans Doe Ocansey",
+  "email": "evans@equivariantlabs.ai",
+  "vcs_username": "evansdoe",
+  "workspace_name": "My Workspace",
+  "workspace_description": "A uv workspace hosting several Python projects.",
+  "root_kind": [
+    "virtual",
+    "application"
+  ],
+  "license": [
+    "MIT",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "GPL-3.0-or-later",
+    "Proprietary"
+  ],
+  "copyright_year": "2026",
+  "python_version": "3.14",
+  "min_python_version": "3.14",
+  "ci_platform": [
+    "github",
+    "gitlab",
+    "both"
+  ],
+  "type_checker": [
+    "mypy",
+    "ty",
+    "none"
+  ],
+  "include_docs": [
+    "yes",
+    "no"
+  ],
+  "include_precommit": [
+    "yes",
+    "no"
+  ],
+  "include_devcontainer": [
+    "yes",
+    "no"
+  ],
+  "include_danger": [
+    "no",
+    "yes"
+  ],
+  "__workspace_slug": "{{ cookiecutter.workspace_name|lower|replace(' ', '-')|replace('_', '-') }}",
+  "__github_url": "https://github.com/{{ cookiecutter.vcs_username }}/{{ cookiecutter.__workspace_slug }}",
+  "__gitlab_url": "https://gitlab.com/{{ cookiecutter.vcs_username }}/{{ cookiecutter.__workspace_slug }}",
+  "__repo_url": "{% if cookiecutter.ci_platform == 'gitlab' %}{{ cookiecutter.__gitlab_url }}{% else %}{{ cookiecutter.__github_url }}{% endif %}",
+  "__root_module": "{{ cookiecutter.workspace_name|lower|replace(' ', '_')|replace('-', '_') }}"
+}

@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "tamasfe.even-better-toml"{% if cookiecutter.type_checker == "mypy" %},
+        "ms-python.mypy-type-checker"{% elif cookiecutter.type_checker == "ty" %},
+        "astral-sh.ty"{% endif %}
+    ]
+}

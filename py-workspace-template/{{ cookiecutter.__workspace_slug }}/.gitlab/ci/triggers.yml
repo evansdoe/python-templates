@@ -1,0 +1,22 @@
+# Builds a child pipeline containing one job per affected workspace member.
+generate-child-pipeline:
+  stage: prepare
+  script:
+    - BASE=${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:-$CI_DEFAULT_BRANCH}
+    - git fetch --no-tags origin "$BASE" || true
+    - >
+      python scripts/ci/discover_projects.py
+      --format gitlab --base "origin/$BASE" -o child-pipelines.yml
+    - cat child-pipelines.yml
+  artifacts:
+    paths:
+      - child-pipelines.yml
+
+projects:
+  stage: test
+  needs: [generate-child-pipeline]
+  trigger:
+    include:
+      - artifact: child-pipelines.yml
+        job: generate-child-pipeline
+    strategy: depend

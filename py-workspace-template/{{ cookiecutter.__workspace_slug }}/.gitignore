@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+.python-version.local
+
+# uv
+.uv-cache/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+report.xml
+
+# Type checkers / linters
+.mypy_cache/
+.ruff_cache/
+.ty_cache/
+
+# Docs
+site/
+
+# Node (Danger)
+node_modules/
+
+# Editors / OS
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.DS_Store
+
+# Secrets
+.env
+.env.*
+!.env.example
