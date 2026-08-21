@@ -15,10 +15,10 @@ name: Cross-template integration
 on:
   push:
     branches: [main]
-    paths: ["python-workspace-template/**", "python-workspace-member/**"]
+    paths: ["python-workspace-template/**", "python-workspace-member/**", ".github/workflows/integration.yml"]
   pull_request:
     branches: [main]
-    paths: ["python-workspace-template/**", "python-workspace-member/**"]
+    paths: ["python-workspace-template/**", "python-workspace-member/**", ".github/workflows/integration.yml"]
   workflow_dispatch:
 
 jobs:

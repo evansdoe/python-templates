@@ -12,10 +12,10 @@ name: Test python-workspace-member
 on:
   push:
     branches: [main]
-    paths: ["python-workspace-member/**", "python-workspace-template/**"]
+    paths: ["python-workspace-member/**", "python-workspace-template/**", ".github/workflows/test-python-workspace-member.yml"]
   pull_request:
     branches: [main]
-    paths: ["python-workspace-member/**", "python-workspace-template/**"]
+    paths: ["python-workspace-member/**", "python-workspace-template/**", ".github/workflows/test-python-workspace-member.yml"]
   workflow_dispatch:
 
 defaults:

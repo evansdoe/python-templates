@@ -7,10 +7,10 @@ name: Test python-workspace-template
 on:
   push:
     branches: [main]
-    paths: ["python-workspace-template/**"]
+    paths: ["python-workspace-template/**", ".github/workflows/test-python-workspace-template.yml"]
   pull_request:
     branches: [main]
-    paths: ["python-workspace-template/**"]
+    paths: ["python-workspace-template/**", ".github/workflows/test-python-workspace-template.yml"]
   workflow_dispatch:
 
 defaults:

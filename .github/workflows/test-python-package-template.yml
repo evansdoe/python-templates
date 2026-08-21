@@ -7,10 +7,10 @@ name: Test python-package-template
 on:
   push:
     branches: [main]
-    paths: ["python-package-template/**"]
+    paths: ["python-package-template/**", ".github/workflows/test-python-package-template.yml"]
   pull_request:
     branches: [main]
-    paths: ["python-package-template/**"]
+    paths: ["python-package-template/**", ".github/workflows/test-python-package-template.yml"]
   workflow_dispatch:
 
 defaults:
