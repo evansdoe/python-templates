@@ -18,18 +18,18 @@ have a token configured (`gh auth login && gh auth setup-git`).
 
 ## Options
 
-| Variable | Values | Notes |
-| --- | --- | --- |
-| `license` | MIT, Apache-2.0, BSD-3-Clause, GPL-3.0-or-later, Proprietary | Apache/GPL write a short notice; fetch the full text before publishing |
-| `python_version` / `min_python_version` | e.g. `3.12` / `3.11` | Both end up in the CI test matrix |
-| `ci_platform` | github, gitlab, both | Unused pipeline files are deleted |
-| `type_checker` | mypy, ty, none | mypy is configured `strict` |
-| `include_docs` | yes, no | MkDocs Material + mkdocstrings |
-| `include_precommit` | yes, no | ruff, uv-lock, conventional-commit hooks |
-| `include_devcontainer` | yes, no | |
-| `include_docker` | no, yes | Multi-stage build/runtime/dev Dockerfile |
-| `include_danger` | no, yes | Danger.js in TypeScript, works on both platforms |
-| `publish_to_pypi` | no, yes | Trusted publishing on GitHub, `uv publish` on GitLab |
+| Variable                                | Values                                                       | Notes                                                                  |
+| --------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `license`                               | MIT, Apache-2.0, BSD-3-Clause, GPL-3.0-or-later, Proprietary | Apache/GPL write a short notice; fetch the full text before publishing |
+| `python_version` / `min_python_version` | e.g. `3.12` / `3.11`                                         | Both end up in the CI test matrix                                      |
+| `ci_platform`                           | github, gitlab, both                                         | Unused pipeline files are deleted                                      |
+| `type_checker`                          | mypy, ty, none                                               | mypy is configured `strict`                                            |
+| `include_docs`                          | yes, no                                                      | MkDocs Material + mkdocstrings                                         |
+| `include_precommit`                     | yes, no                                                      | ruff, uv-lock, conventional-commit hooks                               |
+| `include_devcontainer`                  | yes, no                                                      |                                                                        |
+| `include_docker`                        | no, yes                                                      | Multi-stage build/runtime/dev Dockerfile                               |
+| `include_danger`                        | no, yes                                                      | Danger.js in TypeScript, works on both platforms                       |
+| `publish_to_pypi`                       | no, yes                                                      | Trusted publishing on GitHub, `uv publish` on GitLab                   |
 
 ## What you get
 
