@@ -43,3 +43,30 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 USER app
 CMD ["python", "-c", "import {{ cookiecutter.__module_name }}; print({{ cookiecutter.__module_name }}.__version__)"]
+{%- if cookiecutter.include_devcontainer == "yes" %}
+
+# ---------- dev ----------
+# Local dev container. Referenced by .devcontainer/devcontainer.json's
+# `build.target` -- one Dockerfile to maintain instead of two, and the dev
+# environment is guaranteed to match what actually ships (same base image,
+# same uv, same non-root user) instead of drifting from a generic
+# third-party devcontainer image.
+FROM python:${PYTHON_VERSION}-slim-bookworm AS dev
+COPY --from=uv /uv /uvx /bin/
+
+ENV UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never
+
+RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
+        git \
+        ssh \
+        curl \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Avoid CRLF diffs on Windows hosts.
+RUN git config --global core.autocrlf input \
+    && git config --global core.eol lf
+
+WORKDIR /workspace
+{%- endif %}

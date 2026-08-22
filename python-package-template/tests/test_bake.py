@@ -198,12 +198,27 @@ def test_danger_scripts_use_biome(cookies):
     assert "pnpm format" in github_ci_yml
 
 
-def test_dockerfile_has_no_unused_dev_stage(cookies):
-    """The dev stage was vestigial -- nothing referenced it (no devcontainer
-    build target, no CI job)."""
-    result = bake(cookies, include_docker="yes")
-    dockerfile = (result.project_path / "Dockerfile").read_text()
-    assert "AS dev" not in dockerfile
+def test_dockerfile_dev_stage_matches_devcontainer(cookies):
+    """The dev stage only exists when something actually builds it: the
+    devcontainer's build.target. Previously the Dockerfile shipped a
+    vestigial `dev` stage that nothing referenced (no devcontainer build
+    target, no CI job) -- now it's gated on include_devcontainer, and the
+    devcontainer builds from it instead of a generic third-party image, so
+    the dev environment can't drift from what actually ships."""
+    both = bake(cookies, include_docker="yes", include_devcontainer="yes")
+    dockerfile = (both.project_path / "Dockerfile").read_text()
+    assert "FROM python:${PYTHON_VERSION}-slim-bookworm AS dev" in dockerfile
+    devcontainer = (both.project_path / ".devcontainer" / "devcontainer.json").read_text()
+    assert '"target": "dev"' in devcontainer
+    assert '"dockerfile": "../Dockerfile"' in devcontainer
+
+    no_devcontainer = bake(cookies, include_docker="yes", include_devcontainer="no")
+    assert "AS dev" not in (no_devcontainer.project_path / "Dockerfile").read_text()
+
+    no_docker = bake(cookies, include_docker="no", include_devcontainer="yes")
+    devcontainer_fallback = (no_docker.project_path / ".devcontainer" / "devcontainer.json").read_text()
+    assert "mcr.microsoft.com/devcontainers/python" in devcontainer_fallback
+    assert '"target": "dev"' not in devcontainer_fallback
 
 
 @pytest.mark.parametrize("uv_version", ["latest", "0.12.5"])

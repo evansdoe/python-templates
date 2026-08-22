@@ -27,8 +27,8 @@ have a token configured (`gh auth login && gh auth setup-git`).
 | `type_checker`                          | mypy, ty, none                                               | mypy is configured `strict`                                            |
 | `include_docs`                          | yes, no                                                      | MkDocs Material + mkdocstrings                                         |
 | `include_precommit`                     | yes, no                                                      | ruff, uv-lock, conventional-commit hooks                               |
-| `include_devcontainer`                  | yes, no                                                      |                                                                        |
-| `include_docker`                        | no, yes                                                      | Multi-stage build/runtime Dockerfile                                   |
+| `include_devcontainer`                  | yes, no                                                      | See below for how this interacts with `include_docker`                |
+| `include_docker`                        | no, yes                                                      | Multi-stage build/runtime/dev Dockerfile                               |
 | `include_danger`                        | no, yes                                                      | Danger.js in TypeScript, works on both platforms                       |
 | `publish_to_pypi`                       | no, yes                                                      | Trusted publishing on GitHub, `uv publish` on GitLab                   |
 
@@ -79,6 +79,19 @@ entirely. `dangerfile.ts` is intentionally the only file you'd ever touch —
 Linting for the danger scripts themselves runs through
 [Biome](https://biomejs.dev) (`pnpm lint` / `pnpm format`), which both CI
 platforms run before `danger ci --failOnErrors`.
+
+## Devcontainer (`include_devcontainer`)
+
+When `include_docker=yes`, the devcontainer builds from the same
+`Dockerfile` as the production image — `target: dev`, a stage with the
+same base image and `uv`, plus git/ssh/curl for day-to-day dev work — so
+the dev environment can't drift from what actually ships. There's one
+Dockerfile to maintain, not two.
+
+When `include_docker=no`, there's no Dockerfile to build from, so the
+devcontainer falls back to a generic `mcr.microsoft.com/devcontainers/python`
+image with a `uv` feature layered on. Functionally fine, just decoupled
+from the rest of the project.
 
 ## Keeping projects up to date
 
