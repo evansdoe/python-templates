@@ -28,12 +28,13 @@ jobs:
     name: Test template generation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
           enable-cache: true
+          cache-dependency-glob: "python-workspace-member/pyproject.toml"
 
       - name: Install Python
         run: uv python install 3.14
@@ -53,12 +54,13 @@ jobs:
     env:
       WORKSPACE_TEMPLATE_PATH: ${{ github.workspace }}/python-workspace-template
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
           enable-cache: true
+          cache-dependency-glob: "python-workspace-member/pyproject.toml"
 
       - name: Install Python
         run: uv python install 3.14
