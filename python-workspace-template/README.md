@@ -111,6 +111,49 @@ already importable when `mkdocs serve` runs at the root — no per-member
 API from the root with `::: module_name`; adding its page to `nav:` is still
 a manual, editorial step.
 
+## Danger.js rules (`include_danger`)
+
+The rule logic lives in `scripts/danger/danger-rules.ts` as a single
+`runDanger(config)` export, not inline in `dangerfile.ts` — `dangerfile.ts`
+itself is just:
+
+```ts
+import { runDanger } from "./danger-rules";
+runDanger({
+  // maxCommitsPerAuthor: 5,
+  // requireCommitSigning: true,
+});
+```
+
+Built in, on by default: Conventional Commits PR/MR title, a minimum
+description length, a changelog/tests reminder when any member's `src/`
+changes, and a changed-lines-of-code size guard. Path checks use substring
+markers (`/src/`, `/tests/`) rather than a fixed prefix, since "source
+changed" means any member's `projects/<name>/src/`, not one repo-wide
+`src/`. Two more checks are off by default — pass them in `dangerfile.ts`'s
+config object to turn them on:
+
+| Option                 | Default | Effect                                                                                     |
+| ----------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `maxCommitsPerAuthor`   | `0` (off) | Warns when one author has more than this many commits on the PR/MR                        |
+| `requireCommitSigning`  | `false`   | GitHub: fails on any unsigned commit. GitLab: Danger's MR DSL can't see commit signatures, so this posts an informational message pointing at **Settings → Repository → Push Rules → Reject unsigned commits** instead |
+
+Every other threshold (`minDescriptionLength`, `maxLinesChanged`,
+`sourcePathMarker`, `testsPathMarker`, etc.) is also overridable the same
+way, or set to `0`/`false` to disable that check entirely.
+
+Linting for the danger scripts themselves runs through
+[Biome](https://biomejs.dev) (`pnpm lint` / `pnpm format`), which both CI
+platforms run before `danger ci --failOnErrors`.
+
+`danger-rules.ts` imports Danger's types with `import type` and declares
+`danger`/`warn`/`fail`/`message`/`schedule` locally rather than importing
+them as values from `"danger"` — Danger's CLI only strips that import out
+of the literal `dangerfile.ts` entrypoint before executing it, so the same
+import in any other file survives into a real `require("danger")` call,
+which throws. A type-only import always erases at compile time, so it can
+never produce that call.
+
 ## Note on type checking
 
 The root mypy config excludes `projects/*/tests/`: members legitimately reuse
