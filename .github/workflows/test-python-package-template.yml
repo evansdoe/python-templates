@@ -58,5 +58,9 @@ jobs:
       - name: Install testing dependencies
         run: uv sync --all-groups
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Run integration tests
         run: uv run pytest tests/ -v -m slow --run-slow
