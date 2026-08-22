@@ -21,6 +21,7 @@ my-workspace/
 ├── uv.lock                 # one lockfile for every member
 ├── ruff.toml               # shared lint config
 ├── scripts/ci/discover_projects.py
+├── mkdocs.yml               # optional: root docs hub (include_docs)
 └── projects/
     ├── geo-core/
     └── bench-cli/
@@ -82,6 +83,16 @@ with *"is included as a workspace member, but is missing an entry in
 pin, e.g. `0.12.5`), `ci_platform` (github/gitlab/both), `type_checker`
 (mypy/ty/none), `include_docs`, `include_precommit`, `include_devcontainer`,
 `include_danger`.
+
+## Docs (`include_docs`)
+
+Ships a root `mkdocs.yml` + `docs/index.md` as a hub, not a per-member API
+reference. `uv sync --all-packages --all-groups` installs every member
+editable into the workspace's single `.venv`, so a member's modules are
+already importable when `mkdocs serve` runs at the root — no per-member
+`paths:` to keep in sync as members come and go. Document a member's public
+API from the root with `::: module_name`; adding its page to `nav:` is still
+a manual, editorial step.
 
 ## Note on type checking
 

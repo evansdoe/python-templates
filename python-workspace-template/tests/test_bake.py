@@ -183,19 +183,22 @@ def test_devcontainer_toggle(cookies):
     assert not (result.project_path / ".devcontainer").exists()
 
 
-def test_include_docs_only_affects_dependency_groups(cookies):
-    """include_docs adds the docs dependency group, but this template ships no
-    mkdocs.yml/docs/ of its own — unlike python-package-template and
-    python-workspace-member. Documents current behavior; flag to maintainer if
-    that asymmetry is unintentional."""
+def test_docs_toggle(cookies):
+    """include_docs ships a root mkdocs.yml + docs/index.md, matching
+    python-package-template and python-workspace-member: mkdocstrings needs
+    no per-member `paths:` because `uv sync --all-packages` installs every
+    member editable into the one shared .venv, so their modules are already
+    importable."""
     on = bake(cookies, include_docs="yes")
     pyproject = (on.project_path / "pyproject.toml").read_text()
     assert "mkdocs-material" in pyproject
-    assert not (on.project_path / "mkdocs.yml").exists()
-    assert not (on.project_path / "docs").exists()
+    assert (on.project_path / "mkdocs.yml").exists()
+    assert (on.project_path / "docs" / "index.md").exists()
 
     off = bake(cookies, include_docs="no")
     assert "mkdocs-material" not in (off.project_path / "pyproject.toml").read_text()
+    assert not (off.project_path / "mkdocs.yml").exists()
+    assert not (off.project_path / "docs").exists()
 
 
 # ──────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ ROOT = Path.cwd()
 
 CI = "{{ cookiecutter.ci_platform }}"
 SLUG = "{{ cookiecutter.__workspace_slug }}"
+DOCS = "{{ cookiecutter.include_docs }}" == "yes"
 PRECOMMIT = "{{ cookiecutter.include_precommit }}" == "yes"
 DEVCONTAINER = "{{ cookiecutter.include_devcontainer }}" == "yes"
 DANGER = "{{ cookiecutter.include_danger }}" == "yes"
@@ -31,6 +32,8 @@ elif CI == "gitlab":
 
 if not DANGER:
     drop("scripts/danger", ".gitlab/ci/danger.yml")
+if not DOCS:
+    drop("docs", "mkdocs.yml")
 if not PRECOMMIT:
     drop(".pre-commit-config.yaml")
 if not DEVCONTAINER:
