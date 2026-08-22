@@ -49,12 +49,14 @@ Tasks: `uv run poe fmt | lint | types | test | cov | licenses | docs | check | a
 
 ## Danger.js rules (`include_danger`)
 
-The rule logic lives in `scripts/danger/danger-rules.ts` as a single
-`runDanger(config)` export, not inline in `dangerfile.ts` — `dangerfile.ts`
-itself is just:
+The rule logic lives in [`danger-rules`](https://github.com/evansdoe/danger-rules),
+a small shared package pinned by tag in `scripts/danger/package.json` —
+not a local file, and not inline in `dangerfile.ts`. It's shared with
+`python-workspace-template` so a fix lands in one place instead of two
+copies that can silently drift apart. `dangerfile.ts` itself is just:
 
 ```ts
-import { runDanger } from "./danger-rules";
+import { runDanger } from "danger-rules";
 runDanger({
   // maxCommitsPerAuthor: 5,
   // requireCommitSigning: true,
@@ -74,7 +76,8 @@ changed-lines-of-code size guard. Two more are off by default — pass them in
 Every other threshold (`minDescriptionLength`, `maxLinesChanged`, etc.) is
 also overridable the same way, or set to `0`/`false` to disable that check
 entirely. `dangerfile.ts` is intentionally the only file you'd ever touch —
-`danger-rules.ts` is the shared, tested module.
+see the [`danger-rules` README](https://github.com/evansdoe/danger-rules)
+for the full rule set and why it imports things the way it does.
 
 Linting for the danger scripts themselves runs through
 [Biome](https://biomejs.dev) (`pnpm lint` / `pnpm format`), which both CI

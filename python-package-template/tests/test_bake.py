@@ -144,30 +144,25 @@ def test_danger_toggle(cookies):
     assert (on.project_path / "scripts" / "danger" / "package.json").exists()
 
 
-def test_danger_rules_extracted_to_shared_module(cookies):
-    """Rule logic lives in danger-rules.ts; dangerfile.ts is just config."""
+def test_danger_rules_come_from_shared_package(cookies):
+    """Rule logic lives in the danger-rules npm package (github:evansdoe/
+    danger-rules), not a copy-pasted local file -- dangerfile.ts is just
+    config. This used to be a local danger-rules.ts, duplicated (and prone
+    to drifting) across python-package-template and python-workspace-template;
+    extracting it to a shared, versioned dependency means a fix lands in one
+    place, pinned by tag, instead of two files kept in sync by hand."""
     result = bake(cookies, include_danger="yes")
     danger_dir = result.project_path / "scripts" / "danger"
-    assert (danger_dir / "danger-rules.ts").exists()
+    assert not (danger_dir / "danger-rules.ts").exists()
+
     dangerfile = (danger_dir / "dangerfile.ts").read_text()
+    assert 'from "danger-rules"' in dangerfile
     assert "runDanger" in dangerfile
     assert "fail(" not in dangerfile
     assert "schedule(" not in dangerfile
 
-
-def test_danger_rules_does_not_value_import_danger(cookies):
-    """Danger's CLI only strips `import ... from "danger"` out of the literal
-    entrypoint dangerfile.ts -- the same import in any other file (like this
-    one) survives into a real `require("danger")` call, which throws at
-    runtime ("looks like you're trying to import the danger module").
-    Verified against the actual danger CLI (danger local). Only a type-only
-    import is safe here, since it always erases at compile time."""
-    result = bake(cookies, include_danger="yes")
-    rules = (result.project_path / "scripts" / "danger" / "danger-rules.ts").read_text()
-    assert "import type" in rules
-    assert "DangerDSLType" in rules
-    assert "import { danger" not in rules
-    assert "import {danger" not in rules
+    package_json = (danger_dir / "package.json").read_text()
+    assert '"danger-rules": "github:evansdoe/danger-rules#v1.0.2"' in package_json
 
 
 def test_danger_ci_fails_on_errors(cookies):

@@ -9,6 +9,9 @@
     "format": "biome format",
     "format:fix": "biome format --write"
   },
+  "dependencies": {
+    "danger-rules": "github:evansdoe/danger-rules#v1.0.2"
+  },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
     "danger": "^13.0.7",
