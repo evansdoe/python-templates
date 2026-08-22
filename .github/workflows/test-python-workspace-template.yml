@@ -52,6 +52,13 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
+          # Same cache-dependency-glob as test-matrix's setup-uv step above ->
+          # identical cache key. test-matrix already saves it; a second save
+          # attempt here for the same key is rejected by the cache API (harmless,
+          # but noisy: "Failed to save: Unable to reserve cache ... another job
+          # may be creating this cache"). Nothing runs after this job, so it only
+          # needs to restore, never save.
+          save-cache: false
           cache-dependency-glob: "python-workspace-template/pyproject.toml"
 
       - name: Install Python
@@ -60,9 +67,10 @@ jobs:
       - name: Install testing dependencies
         run: uv sync --all-groups
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
+          package-manager-cache: false
 
       - name: Run integration tests
         run: uv run pytest tests/ -v -m slow --run-slow
