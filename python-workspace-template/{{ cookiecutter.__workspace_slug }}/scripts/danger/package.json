@@ -3,9 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "danger": "danger"
+    "danger": "danger",
+    "lint": "biome lint",
+    "lint:fix": "biome lint --write",
+    "format": "biome format",
+    "format:fix": "biome format --write"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.2.4",
     "danger": "^12.3.3",
     "typescript": "^5.7.3",
     "@types/node": "^22.10.0"

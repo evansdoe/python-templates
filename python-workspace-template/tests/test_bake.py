@@ -199,6 +199,23 @@ def test_danger_rules_does_not_value_import_danger(cookies):
     assert "import {danger" not in rules
 
 
+def test_danger_scripts_use_biome(cookies):
+    result = bake(cookies, include_danger="yes", ci_platform="both")
+    danger_dir = result.project_path / "scripts" / "danger"
+    assert (danger_dir / "biome.json").exists()
+    package_json = (danger_dir / "package.json").read_text()
+    assert "@biomejs/biome" in package_json
+    assert '"lint": "biome lint"' in package_json
+
+    gitlab_danger_yml = (result.project_path / ".gitlab" / "ci" / "danger.yml").read_text()
+    assert "pnpm lint" in gitlab_danger_yml
+    assert "pnpm format" in gitlab_danger_yml
+
+    github_ci_yml = (result.project_path / ".github" / "workflows" / "ci.yml").read_text()
+    assert "pnpm lint" in github_ci_yml
+    assert "pnpm format" in github_ci_yml
+
+
 def test_precommit_toggle(cookies):
     result = bake(cookies, include_precommit="no")
     assert not (result.project_path / ".pre-commit-config.yaml").exists()
@@ -330,3 +347,26 @@ def test_integration_uv_sync(cookies, root_kind):
         timeout=180,
     )
     assert proc.returncode == 0, f"uv sync failed:\nstdout: {proc.stdout}\nstderr: {proc.stderr}"
+
+
+@pytest.mark.slow
+def test_integration_danger_lint_and_format(cookies):
+    """Actually run install/lint/format against the generated danger scripts
+    (via npm -- pnpm isn't assumed to be on the dev machine, but the CI
+    templates themselves still use pnpm). Caught for real: danger-rules.ts
+    imported real values from "danger" (crashes danger CI -- see
+    test_danger_rules_does_not_value_import_danger) and, separately, wasn't
+    run through biome format after editing (biome format exits non-zero on
+    the mismatch, which would have failed CI's own format step)."""
+    result = bake(cookies, include_danger="yes")
+    danger_dir = result.project_path / "scripts" / "danger"
+    install = subprocess.run(
+        ["npm", "install", "--no-save"], cwd=danger_dir, capture_output=True, text=True, timeout=120
+    )
+    assert install.returncode == 0, f"npm install failed:\n{install.stdout}\n{install.stderr}"
+
+    lint = subprocess.run(["npm", "run", "lint"], cwd=danger_dir, capture_output=True, text=True, timeout=60)
+    assert lint.returncode == 0, f"lint failed:\n{lint.stdout}\n{lint.stderr}"
+
+    fmt = subprocess.run(["npm", "run", "format"], cwd=danger_dir, capture_output=True, text=True, timeout=60)
+    assert fmt.returncode == 0, f"format failed:\n{fmt.stdout}\n{fmt.stderr}"

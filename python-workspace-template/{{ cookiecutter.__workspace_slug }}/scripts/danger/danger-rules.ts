@@ -68,7 +68,10 @@ export function runDanger(config: DangerRulesConfig = {}): void {
 
   const changed = [...danger.git.modified_files, ...danger.git.created_files];
 
-  if (cfg.conventionalCommitTitle && !CONVENTIONAL_COMMIT_RE.test(title.replace(/^Draft:\s*/i, ""))) {
+  if (
+    cfg.conventionalCommitTitle &&
+    !CONVENTIONAL_COMMIT_RE.test(title.replace(/^Draft:\s*/i, ""))
+  ) {
     fail(
       `The title must follow Conventional Commits, e.g. \`feat(geo-core): add crs support\`. Got: \`${title}\``,
     );
