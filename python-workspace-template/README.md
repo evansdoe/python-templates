@@ -44,6 +44,23 @@ pipeline file**:
 Changes to `pyproject.toml`, `uv.lock`, `ruff.toml`, `scripts/` or the CI config
 count as affecting every member.
 
+```mermaid
+flowchart LR
+    push["push / PR"] --> discover["discover_projects.py"]
+    discover --> shared{"shared file<br/>changed?"}
+    shared -->|"yes"| root["lint + types + licenses<br/>(root, runs once)"]
+    shared -->|"per-member diff"| platform{"GitHub or<br/>GitLab?"}
+
+    platform -->|"GitHub"| matrix["discover job emits<br/>JSON matrix"]
+    matrix --> ghtest["test job fans out<br/>over the matrix"]
+
+    platform -->|"GitLab"| childyml["generate-child-pipeline writes<br/>child-pipelines.yml"]
+    childyml --> projects["projects job triggers it"]
+    projects --> owns{"member ships its own<br/>.gitlab-ci.yml?"}
+    owns -->|"yes"| child["runs as its own<br/>child pipeline"]
+    owns -->|"no"| inline["default inline<br/>pytest job"]
+```
+
 Try the discovery locally:
 
 ```bash

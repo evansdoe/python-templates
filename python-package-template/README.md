@@ -47,6 +47,39 @@ my-package/
 
 Tasks: `uv run poe fmt | lint | types | test | cov | licenses | docs | check | all`.
 
+## Danger.js rules (`include_danger`)
+
+The rule logic lives in `scripts/danger/danger-rules.ts` as a single
+`runDanger(config)` export, not inline in `dangerfile.ts` — `dangerfile.ts`
+itself is just:
+
+```ts
+import { runDanger } from "./danger-rules";
+runDanger({
+  // maxCommitsPerAuthor: 5,
+  // requireCommitSigning: true,
+});
+```
+
+Built in, on by default: Conventional Commits PR/MR title, a minimum
+description length, a changelog/tests reminder when `src/` changes, and a
+changed-lines-of-code size guard. Two more are off by default — pass them in
+`dangerfile.ts`'s config object to turn them on:
+
+| Option                 | Default | Effect                                                                                     |
+| ----------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `maxCommitsPerAuthor`   | `0` (off) | Warns when one author has more than this many commits on the PR/MR                        |
+| `requireCommitSigning`  | `false`   | GitHub: fails on any unsigned commit. GitLab: Danger's MR DSL can't see commit signatures, so this posts an informational message pointing at **Settings → Repository → Push Rules → Reject unsigned commits** instead |
+
+Every other threshold (`minDescriptionLength`, `maxLinesChanged`, etc.) is
+also overridable the same way, or set to `0`/`false` to disable that check
+entirely. `dangerfile.ts` is intentionally the only file you'd ever touch —
+`danger-rules.ts` is the shared, tested module.
+
+Linting for the danger scripts themselves runs through
+[Biome](https://biomejs.dev) (`pnpm lint` / `pnpm format`), which both CI
+platforms run before `danger ci --failOnErrors`.
+
 ## Keeping projects up to date
 
 `cruft` records the template commit in `.cruft.json`. After you improve the
