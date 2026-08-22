@@ -19,12 +19,12 @@ export interface DangerRulesConfig {
   conventionalCommitTitle?: boolean;
   /** Minimum description length in characters. 0 disables the check. */
   minDescriptionLength?: number;
-  /** Path prefix that triggers the changelog reminder when touched. */
-  sourcePathPrefix?: string;
-  /** File expected to change alongside sourcePathPrefix. */
+  /** Substring that marks a member's source dir, e.g. "/src/" in projects/geo-core/src/geo_core/. */
+  sourcePathMarker?: string;
+  /** File expected to change alongside sourcePathMarker. */
   changelogFile?: string;
-  /** Path prefix expected to change alongside sourcePathPrefix. */
-  testsPathPrefix?: string;
+  /** Substring that marks a member's tests dir, e.g. "/tests/". */
+  testsPathMarker?: string;
   /** Warn when the diff exceeds this many changed lines. 0 disables the check. */
   maxLinesChanged?: number;
   /** Warn when one author has more than this many commits on the PR/MR. 0 disables the check. */
@@ -36,9 +36,9 @@ export interface DangerRulesConfig {
 const DEFAULTS: Required<DangerRulesConfig> = {
   conventionalCommitTitle: true,
   minDescriptionLength: 20,
-  sourcePathPrefix: "src/",
+  sourcePathMarker: "/src/",
   changelogFile: "CHANGELOG.md",
-  testsPathPrefix: "tests/",
+  testsPathMarker: "/tests/",
   maxLinesChanged: 800,
   maxCommitsPerAuthor: 0,
   requireCommitSigning: false,
@@ -52,6 +52,10 @@ const CONVENTIONAL_COMMIT_RE =
  * (danger.github) and GitLab (danger.gitlab). Pass a config object to tune
  * thresholds or disable a check (set it to 0/false); see DangerRulesConfig
  * for what each option does.
+ *
+ * Path checks use substring markers rather than prefixes -- this is a
+ * workspace, so "source changed" means any member's projects/<name>/src/,
+ * not one fixed top-level src/.
  */
 export function runDanger(config: DangerRulesConfig = {}): void {
   const cfg: Required<DangerRulesConfig> = { ...DEFAULTS, ...config };
@@ -66,7 +70,7 @@ export function runDanger(config: DangerRulesConfig = {}): void {
 
   if (cfg.conventionalCommitTitle && !CONVENTIONAL_COMMIT_RE.test(title.replace(/^Draft:\s*/i, ""))) {
     fail(
-      `The title must follow Conventional Commits, e.g. \`feat(parser): add yaml support\`. Got: \`${title}\``,
+      `The title must follow Conventional Commits, e.g. \`feat(geo-core): add crs support\`. Got: \`${title}\``,
     );
   }
 
@@ -74,15 +78,15 @@ export function runDanger(config: DangerRulesConfig = {}): void {
     warn("Please describe *what* changed and *why* in the description.");
   }
 
-  const touchesSource = changed.some((f) => f.startsWith(cfg.sourcePathPrefix));
+  const touchesSource = changed.some((f) => f.includes(cfg.sourcePathMarker));
   const touchesChangelog = changed.includes(cfg.changelogFile);
   if (touchesSource && !touchesChangelog) {
     warn(`Source files changed but \`${cfg.changelogFile}\` was not updated.`);
   }
 
-  const touchesTests = changed.some((f) => f.startsWith(cfg.testsPathPrefix));
+  const touchesTests = changed.some((f) => f.includes(cfg.testsPathMarker));
   if (touchesSource && !touchesTests) {
-    warn(`Source files changed without any change under \`${cfg.testsPathPrefix}\`.`);
+    warn(`Source files changed without any change under a \`${cfg.testsPathMarker}\` directory.`);
   }
 
   if (cfg.maxCommitsPerAuthor > 0) {

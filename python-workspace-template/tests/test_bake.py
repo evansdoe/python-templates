@@ -173,6 +173,32 @@ def test_danger_toggle(cookies):
     assert (on.project_path / "scripts" / "danger" / "dangerfile.ts").exists()
 
 
+def test_danger_rules_extracted_to_shared_module(cookies):
+    """Rule logic lives in danger-rules.ts; dangerfile.ts is just config."""
+    result = bake(cookies, include_danger="yes")
+    danger_dir = result.project_path / "scripts" / "danger"
+    assert (danger_dir / "danger-rules.ts").exists()
+    dangerfile = (danger_dir / "dangerfile.ts").read_text()
+    assert "runDanger" in dangerfile
+    assert "fail(" not in dangerfile
+    assert "schedule(" not in dangerfile
+
+
+def test_danger_rules_does_not_value_import_danger(cookies):
+    """Danger's CLI only strips `import ... from "danger"` out of the literal
+    entrypoint dangerfile.ts -- the same import in any other file (like this
+    one) survives into a real `require("danger")` call, which throws at
+    runtime ("looks like you're trying to import the danger module").
+    Verified against the actual danger CLI (danger local). Only a type-only
+    import is safe here, since it always erases at compile time."""
+    result = bake(cookies, include_danger="yes")
+    rules = (result.project_path / "scripts" / "danger" / "danger-rules.ts").read_text()
+    assert "import type" in rules
+    assert "DangerDSLType" in rules
+    assert "import { danger" not in rules
+    assert "import {danger" not in rules
+
+
 def test_precommit_toggle(cookies):
     result = bake(cookies, include_precommit="no")
     assert not (result.project_path / ".pre-commit-config.yaml").exists()

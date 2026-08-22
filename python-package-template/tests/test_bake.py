@@ -155,6 +155,21 @@ def test_danger_rules_extracted_to_shared_module(cookies):
     assert "schedule(" not in dangerfile
 
 
+def test_danger_rules_does_not_value_import_danger(cookies):
+    """Danger's CLI only strips `import ... from "danger"` out of the literal
+    entrypoint dangerfile.ts -- the same import in any other file (like this
+    one) survives into a real `require("danger")` call, which throws at
+    runtime ("looks like you're trying to import the danger module").
+    Verified against the actual danger CLI (danger local). Only a type-only
+    import is safe here, since it always erases at compile time."""
+    result = bake(cookies, include_danger="yes")
+    rules = (result.project_path / "scripts" / "danger" / "danger-rules.ts").read_text()
+    assert "import type" in rules
+    assert "DangerDSLType" in rules
+    assert "import { danger" not in rules
+    assert "import {danger" not in rules
+
+
 def test_danger_ci_fails_on_errors(cookies):
     """--failOnErrors is invoked directly in CI (not a package.json script
     here) -- without it, fail() rules never actually fail the job."""
