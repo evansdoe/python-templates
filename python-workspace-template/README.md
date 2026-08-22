@@ -113,13 +113,18 @@ a manual, editorial step.
 
 ## Danger.js rules (`include_danger`)
 
-The rule logic lives in `scripts/danger/danger-rules.ts` as a single
-`runDanger(config)` export, not inline in `dangerfile.ts` — `dangerfile.ts`
-itself is just:
+The rule logic lives in [`danger-rules`](https://github.com/evansdoe/danger-rules),
+a small shared package pinned by tag in `scripts/danger/package.json` —
+not a local file, and not inline in `dangerfile.ts`. It's shared with
+`python-package-template` so a fix lands in one place instead of two
+copies that can silently drift apart. `dangerfile.ts` itself is just:
 
 ```ts
-import { runDanger } from "./danger-rules";
+import { runDanger } from "danger-rules";
+
 runDanger({
+  sourcePathMarker: "/src/",
+  testsPathMarker: "/tests/",
   // maxCommitsPerAuthor: 5,
   // requireCommitSigning: true,
 });
@@ -128,10 +133,11 @@ runDanger({
 Built in, on by default: Conventional Commits PR/MR title, a minimum
 description length, a changelog/tests reminder when any member's `src/`
 changes, and a changed-lines-of-code size guard. Path checks use substring
-markers (`/src/`, `/tests/`) rather than a fixed prefix, since "source
-changed" means any member's `projects/<name>/src/`, not one repo-wide
-`src/`. Two more checks are off by default — pass them in `dangerfile.ts`'s
-config object to turn them on:
+markers, not a fixed prefix — the package defaults to `"src/"`/`"tests/"`
+for a single top-level layout, and this template overrides both to
+`/src/`/`/tests/` since "source changed" here means any member's
+`projects/<name>/src/`, not one repo-wide `src/`. Two more checks are off
+by default — pass them in `dangerfile.ts`'s config object to turn them on:
 
 | Option                 | Default | Effect                                                                                     |
 | ----------------------- | ------- | ------------------------------------------------------------------------------------------- |
@@ -146,13 +152,9 @@ Linting for the danger scripts themselves runs through
 [Biome](https://biomejs.dev) (`pnpm lint` / `pnpm format`), which both CI
 platforms run before `danger ci --failOnErrors`.
 
-`danger-rules.ts` imports Danger's types with `import type` and declares
-`danger`/`warn`/`fail`/`message`/`schedule` locally rather than importing
-them as values from `"danger"` — Danger's CLI only strips that import out
-of the literal `dangerfile.ts` entrypoint before executing it, so the same
-import in any other file survives into a real `require("danger")` call,
-which throws. A type-only import always erases at compile time, so it can
-never produce that call.
+See the [`danger-rules` README](https://github.com/evansdoe/danger-rules)
+for why it imports Danger's types with `import type` instead of a value
+import, and why it ships a compiled `dist/` rather than raw TypeScript.
 
 ## Note on type checking
 
