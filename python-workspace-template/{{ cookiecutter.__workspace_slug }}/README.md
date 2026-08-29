@@ -32,6 +32,19 @@ uv sync --all-packages --all-groups
 uv run pre-commit install
 {%- endif %}
 ```
+{%- if cookiecutter.include_danger == "yes" %}
+
+### Danger.js (one-time setup)
+
+```bash
+cd scripts/danger && pnpm install   # commit the generated pnpm-lock.yaml
+```
+{%- if cookiecutter.ci_platform in ["gitlab", "both"] %}
+
+For GitLab, add a project access token (`api` scope, Reporter role) as the masked CI/CD
+variable `DANGER_GITLAB_API_TOKEN`. GitHub Actions uses the built-in `GITHUB_TOKEN`.
+{%- endif %}
+{%- endif %}
 
 ## Adding a project
 
