@@ -212,6 +212,30 @@ def test_danger_scripts_use_biome(cookies):
     assert "pnpm format" in github_ci_yml
 
 
+def test_types_job_installs_test_dependencies(cookies):
+    """mypy checks tests/ as well as src/, so the type-check job needs the
+    test group installed. Without it, the first CI run of any project whose
+    tests import pytest fails with import-not-found. The generated smoke
+    test imports only the package itself, which is why this went unseen."""
+    result = bake(cookies, ci_platform="github", type_checker="mypy")
+    ci = yaml.safe_load((result.project_path / ".github" / "workflows" / "ci.yml").read_text())
+    syncs = [step["run"] for step in ci["jobs"]["types"]["steps"] if "run" in step]
+    assert any("--group lint" in s and "--group test" in s for s in syncs), syncs
+
+
+def test_danger_job_declares_token_permissions(cookies):
+    """A job that declares no permissions inherits the repository default,
+    which carries no pull-requests scope when that default is read-only:
+    every Danger API call then returns 403 "Resource not accessible by
+    integration" and the job fails before it can review anything."""
+    result = bake(cookies, include_danger="yes", ci_platform="github")
+    ci = yaml.safe_load((result.project_path / ".github" / "workflows" / "ci.yml").read_text())
+    assert ci["jobs"]["danger"]["permissions"] == {
+        "contents": "read",
+        "pull-requests": "write",
+    }
+
+
 def test_precommit_toggle(cookies):
     result = bake(cookies, include_precommit="no")
     assert not (result.project_path / ".pre-commit-config.yaml").exists()
