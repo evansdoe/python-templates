@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+{%- if cookiecutter.include_danger == "yes" %}
+    # Danger judges the title and the description, so the job has to re-run
+    # when either is edited. GitHub's default types are opened, synchronize
+    # and reopened only, which leaves a corrected title failing until someone
+    # pushes a commit.
+    types: [opened, synchronize, reopened, edited]
+{%- endif %}
   workflow_dispatch:
 
 concurrency:

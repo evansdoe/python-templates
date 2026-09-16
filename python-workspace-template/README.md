@@ -159,6 +159,9 @@ integration*, raise that default under **Settings -> Actions -> General ->
 Workflow permissions**. Pull requests from forks always get a read-only token
 whatever the job asks for, so Danger cannot comment on those.
 
+The job runs on `pull_request`, including the `edited` action, so correcting a
+title or a description re-runs it without needing a new commit.
+
 See the [`danger-rules` README](https://github.com/evansdoe/danger-rules)
 for why it imports Danger's types with `import type` instead of a value
 import, and why it ships a compiled `dist/` rather than raw TypeScript.

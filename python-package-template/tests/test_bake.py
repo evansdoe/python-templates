@@ -189,6 +189,31 @@ def test_danger_toggle(cookies):
     assert (on.project_path / "scripts" / "danger" / "package.json").exists()
 
 
+def test_danger_reruns_when_the_pull_request_is_edited(cookies):
+    """Danger judges the title and the description, and both are edited after
+    a pull request is opened. GitHub's default pull_request types are opened,
+    synchronize and reopened, so without `edited` a corrected title left the
+    failed check standing until someone pushed a commit. Projects without
+    Danger do not want a full CI run every time a description is touched."""
+    on = bake(cookies, include_danger="yes", ci_platform="github")
+    ci = yaml.safe_load((on.project_path / ".github" / "workflows" / "ci.yml").read_text())
+    # PyYAML reads an unquoted `on:` key as the boolean True (YAML 1.1).
+    triggers = ci[True] if True in ci else ci["on"]
+    assert triggers["pull_request"]["types"] == [
+        "opened",
+        "synchronize",
+        "reopened",
+        "edited",
+    ]
+
+    off = bake(cookies, include_danger="no", ci_platform="github")
+    ci_off = yaml.safe_load(
+        (off.project_path / ".github" / "workflows" / "ci.yml").read_text()
+    )
+    triggers_off = ci_off[True] if True in ci_off else ci_off["on"]
+    assert triggers_off["pull_request"] is None
+
+
 def test_danger_rules_come_from_shared_package(cookies):
     """Rule logic lives in the danger-rules npm package (github:evansdoe/
     danger-rules), not a copy-pasted local file -- dangerfile.ts is just
