@@ -83,6 +83,28 @@ Linting for the danger scripts themselves runs through
 [Biome](https://biomejs.dev) (`pnpm lint` / `pnpm format`), which both CI
 platforms run before `danger ci --failOnErrors`.
 
+On GitHub the job requests `contents: read` and `pull-requests: write`. A
+repository whose default workflow permissions are read-only caps what any job
+may request, so if Danger still returns 403 *Resource not accessible by
+integration*, raise that default under **Settings -> Actions -> General ->
+Workflow permissions**. Pull requests from forks always get a read-only token
+whatever the job asks for, so Danger cannot comment on those.
+
+## Docker (`include_docker`)
+
+Three stages: `build` resolves dependencies with uv, `runtime` ships them on a
+slim base as a non-root user, and `dev` (present when
+`include_devcontainer=yes`) backs the devcontainer. `runtime` is deliberately
+last, because `docker build` builds the last stage unless told otherwise:
+
+```bash
+docker build -t my-package .                    # runtime image
+docker build --target dev -t my-package:dev .   # what the devcontainer builds
+```
+
+`.dockerignore` keeps `.env`, caches and any `node_modules/` out of the build
+context, so `COPY . /app` cannot bake secrets into an image.
+
 ## Devcontainer (`include_devcontainer`)
 
 When `include_docker=yes`, the devcontainer builds from the same
