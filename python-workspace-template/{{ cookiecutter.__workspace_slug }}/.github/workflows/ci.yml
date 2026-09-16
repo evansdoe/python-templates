@@ -36,7 +36,8 @@ jobs:
         with:
           version: {% raw %}${{ env.UV_VERSION }}{% endraw %}
           enable-cache: true
-      - run: uv sync --all-packages --no-default-groups --group lint
+      # mypy checks tests/ too, so the tests' dependencies must be present.
+      - run: uv sync --all-packages --no-default-groups --group lint --group test
 {%- if cookiecutter.type_checker == "mypy" %}
       - run: uv run --no-sync mypy
 {%- else %}
@@ -97,6 +98,12 @@ jobs:
 
   danger:
     runs-on: ubuntu-latest
+    # Danger reads the pull request and posts a comment. Without this the
+    # default workflow token carries no pull-requests scope and every API
+    # call fails with 403 "Resource not accessible by integration".
+    permissions:
+      contents: read
+      pull-requests: write
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v7

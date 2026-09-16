@@ -31,21 +31,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups
-
-# ---------- runtime ----------
-FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
-
-RUN useradd --create-home --uid 1000 app
-WORKDIR /app
-
-COPY --from=build --chown=app:app /app /app
-ENV PATH="/app/.venv/bin:$PATH"
-
-USER app
-CMD ["python", "-c", "import {{ cookiecutter.__module_name }}; print({{ cookiecutter.__module_name }}.__version__)"]
 {%- if cookiecutter.include_devcontainer == "yes" %}
 
 # ---------- dev ----------
+# Placed before the runtime stage because `docker build .` builds the
+# *last* stage by default: keeping runtime last means a plain build
+# produces the shipping image rather than this one.
 # Local dev container. Referenced by .devcontainer/devcontainer.json's
 # `build.target` -- one Dockerfile to maintain instead of two, and the dev
 # environment is guaranteed to match what actually ships (same base image,
@@ -70,3 +61,15 @@ RUN git config --global core.autocrlf input \
 
 WORKDIR /workspace
 {%- endif %}
+
+# ---------- runtime ----------
+FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
+
+RUN useradd --create-home --uid 1000 app
+WORKDIR /app
+
+COPY --from=build --chown=app:app /app /app
+ENV PATH="/app/.venv/bin:$PATH"
+
+USER app
+CMD ["python", "-c", "import {{ cookiecutter.__module_name }}; print({{ cookiecutter.__module_name }}.__version__)"]

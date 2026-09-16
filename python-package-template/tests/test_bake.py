@@ -12,6 +12,7 @@ Test tiers:
 """
 
 import os
+import re
 import subprocess
 
 import pytest
@@ -100,6 +101,50 @@ def test_uv_version_not_pinned_stale(cookies):
     assert 'UV_VERSION: "latest"' in ci_yml
     release_yml = (result.project_path / ".github" / "workflows" / "release.yml").read_text()
     assert 'version: "latest"' in release_yml
+
+
+def test_types_job_installs_test_dependencies(cookies):
+    """mypy checks tests/ as well as src/, so the type-check job needs the
+    test group installed. Without it, the first CI run of any project whose
+    tests import pytest fails with import-not-found. The generated smoke
+    test imports only the package itself, which is why this went unseen."""
+    result = bake(cookies, ci_platform="github", type_checker="mypy")
+    ci = yaml.safe_load((result.project_path / ".github" / "workflows" / "ci.yml").read_text())
+    syncs = [step["run"] for step in ci["jobs"]["types"]["steps"] if "run" in step]
+    assert any("--group lint" in s and "--group test" in s for s in syncs), syncs
+
+
+@pytest.mark.parametrize(
+    "min_version,target_version,expected",
+    [("3.14", "3.14", ["3.14"]), ("3.13", "3.14", ["3.13", "3.14"])],
+)
+def test_each_python_version_appears_once(cookies, min_version, target_version, expected):
+    """Equal min/target versions rendered ["3.14", "3.14"], which runs two
+    identical test jobs whose coverage uploads collide on the artifact name,
+    failing the second one. The classifiers duplicated the same way."""
+    result = bake(cookies, min_python_version=min_version, python_version=target_version)
+    ci = yaml.safe_load((result.project_path / ".github" / "workflows" / "ci.yml").read_text())
+    assert ci["jobs"]["test"]["strategy"]["matrix"]["python-version"] == expected
+
+    classifiers = [
+        line
+        for line in (result.project_path / "pyproject.toml").read_text().splitlines()
+        if "Programming Language :: Python :: 3." in line
+    ]
+    assert len(classifiers) == len(expected), classifiers
+
+
+def test_danger_job_declares_token_permissions(cookies):
+    """A job that declares no permissions inherits the repository default,
+    which carries no pull-requests scope when that default is read-only:
+    every Danger API call then returns 403 "Resource not accessible by
+    integration" and the job fails before it can review anything."""
+    result = bake(cookies, include_danger="yes", ci_platform="github")
+    ci = yaml.safe_load((result.project_path / ".github" / "workflows" / "ci.yml").read_text())
+    assert ci["jobs"]["danger"]["permissions"] == {
+        "contents": "read",
+        "pull-requests": "write",
+    }
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -235,6 +280,31 @@ def test_uv_version_defaults_to_latest(cookies):
     result = bake(cookies, include_docker="yes")
     dockerfile = (result.project_path / "Dockerfile").read_text()
     assert "ARG UV_VERSION=latest" in dockerfile
+
+
+def test_dockerignore_excludes_secrets_and_nested_node_modules(cookies):
+    """`COPY . /app` would otherwise bake a .env, and its API keys, into the
+    image. Unlike .gitignore, .dockerignore patterns are anchored to the
+    context root, so scripts/danger/node_modules needs the ** prefix."""
+    result = bake(cookies, include_docker="yes", include_danger="yes")
+    patterns = (result.project_path / ".dockerignore").read_text().split()
+    assert ".env" in patterns
+    assert ".env.*" in patterns
+    assert "**/node_modules/" in patterns
+
+
+@pytest.mark.parametrize("include_devcontainer", ["yes", "no"])
+def test_runtime_is_the_last_stage(cookies, include_devcontainer):
+    """`docker build .` builds the last stage by default, so while dev came
+    last a plain build produced the dev image: no application, no
+    entrypoint, and every apt package the dev stage installs."""
+    result = bake(
+        cookies, include_docker="yes", include_devcontainer=include_devcontainer
+    )
+    dockerfile = (result.project_path / "Dockerfile").read_text()
+    stages = re.findall(r"^FROM .* AS (\w+)$", dockerfile, re.MULTILINE)
+    assert stages[-1] == "runtime", stages
+    assert ("dev" in stages) == (include_devcontainer == "yes"), stages
 
 
 # ──────────────────────────────────────────────────────────────────────────

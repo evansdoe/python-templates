@@ -152,6 +152,13 @@ Linting for the danger scripts themselves runs through
 [Biome](https://biomejs.dev) (`pnpm lint` / `pnpm format`), which both CI
 platforms run before `danger ci --failOnErrors`.
 
+On GitHub the job requests `contents: read` and `pull-requests: write`. A
+repository whose default workflow permissions are read-only caps what any job
+may request, so if Danger still returns 403 *Resource not accessible by
+integration*, raise that default under **Settings -> Actions -> General ->
+Workflow permissions**. Pull requests from forks always get a read-only token
+whatever the job asks for, so Danger cannot comment on those.
+
 See the [`danger-rules` README](https://github.com/evansdoe/danger-rules)
 for why it imports Danger's types with `import type` instead of a value
 import, and why it ships a compiled `dist/` rather than raw TypeScript.

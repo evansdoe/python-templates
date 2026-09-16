@@ -13,7 +13,9 @@ keywords = []
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: {{ cookiecutter.min_python_version }}",
+{%- if cookiecutter.python_version != cookiecutter.min_python_version %}
     "Programming Language :: Python :: {{ cookiecutter.python_version }}",
+{%- endif %}
     "Typing :: Typed",
 {%- if cookiecutter.license == "Proprietary" %}
     "Private :: Do Not Upload",
