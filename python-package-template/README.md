@@ -90,6 +90,9 @@ integration*, raise that default under **Settings -> Actions -> General ->
 Workflow permissions**. Pull requests from forks always get a read-only token
 whatever the job asks for, so Danger cannot comment on those.
 
+The job runs on `pull_request`, including the `edited` action, so correcting a
+title or a description re-runs it without needing a new commit.
+
 ## Docker (`include_docker`)
 
 Three stages: `build` resolves dependencies with uv, `runtime` ships them on a
