@@ -56,7 +56,11 @@ test = ["pytest>=8.3", "pytest-cov>=6.0", "import-linter>=2.1"]
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
-addopts = "-ra --strict-markers --strict-config"
+# importlib mode lets two test folders hold files with the same name, e.g.
+# tests/unit/sources/test_models.py and tests/unit/storage/test_models.py.
+# Test files cannot import each other in this mode: share helpers through
+# fixtures in tests/conftest.py or a testing module inside the package.
+addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 
 # Architecture contract, checked by tests/test_architecture.py.
 #
