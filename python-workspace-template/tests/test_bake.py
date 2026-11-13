@@ -388,6 +388,64 @@ def test_root_agents_md_points_to_member_files(cookies):
 
 
 # ──────────────────────────────────────────────────────────────────────────
+# Skills: python-design under .github/skills, linked from .claude/skills
+# ──────────────────────────────────────────────────────────────────────────
+SKILL_DIR = ".github/skills/python-design"
+SKILL_FILES = [
+    "SKILL.md",
+    "references/boundaries.md",
+    "references/code-shapes.md",
+    "references/existing-packages.md",
+    "references/quality-checks.md",
+]
+
+
+@pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
+def test_python_design_skill_is_baked(cookies, ci_platform):
+    root = bake(cookies, ci_platform=ci_platform).project_path
+    for name in SKILL_FILES:
+        assert (root / SKILL_DIR / name).is_file(), f"missing {SKILL_DIR}/{name}"
+    frontmatter = (root / SKILL_DIR / "SKILL.md").read_text().split("---")[1]
+    assert "name: python-design" in frontmatter
+    assert "description:" in frontmatter
+
+
+def test_claude_skills_point_to_the_github_skill(cookies):
+    """Claude Code reads .claude/skills; one copy of the text, linked."""
+    root = bake(cookies).project_path
+    link = root / ".claude/skills/python-design"
+    assert link.is_symlink(), ".claude/skills/python-design should be a symlink"
+    assert os.readlink(link) == "../../.github/skills/python-design"
+    assert (link / "SKILL.md").read_text() == (root / SKILL_DIR / "SKILL.md").read_text()
+
+
+def test_gitlab_workspace_keeps_skills_but_drops_workflows(cookies):
+    root = bake(cookies, ci_platform="gitlab").project_path
+    assert not (root / ".github/workflows").exists()
+    assert (root / SKILL_DIR / "SKILL.md").is_file()
+
+
+def test_root_agents_md_points_to_the_skill(cookies):
+    text = (bake(cookies).project_path / "AGENTS.md").read_text()
+    assert f"{SKILL_DIR}/SKILL.md" in text
+
+
+def test_skill_code_blocks_pass_ruff_format(cookies):
+    """Ruff formats Python blocks in Markdown; a fresh workspace must pass.
+
+    uvx runs the newest ruff, which is what the workspace's `ruff>=0.9` resolves to.
+    """
+    root = bake(cookies).project_path
+    proc = subprocess.run(
+        ["uvx", "ruff", "format", "--check", SKILL_DIR],
+        cwd=root,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+# ──────────────────────────────────────────────────────────────────────────
 # Hygiene: no Jinja leaks, valid YAML
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
