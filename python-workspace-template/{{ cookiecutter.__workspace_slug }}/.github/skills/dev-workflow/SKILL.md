@@ -1,7 +1,7 @@
 ---
 name: dev-workflow
 description: >
-  Development workflow for this uv workspace: plan by separation of concerns
+  Development workflow for this project: plan by separation of concerns
   with example mapping, predictive TDD from a test list at a pace the user can
   follow, optional isolated refactoring, one branch per concern, a commit per
   cycle, squash to one templated commit, gates through poe, evaluate review
@@ -12,8 +12,10 @@ description: >
 
 # Development workflow
 
-Follow this workflow for every implementation task in this workspace unless
+Follow this workflow for every implementation task in this repository unless
 the user says otherwise. "Pull request" means a merge request on GitLab.
+"Package" means the package you are changing: the project itself, or one
+member of a uv workspace. Its test command is in the nearest `AGENTS.md`.
 Where the code goes and what shape it takes is the `python-design` skill
 (`.github/skills/python-design/SKILL.md`); this skill is the order of work.
 
@@ -119,8 +121,8 @@ dependency changes do not need it, but the existing tests must stay green.
    refactoring at a time, predicted and run. Undo a trial that does not make
    the intent clearer. If nothing improves, say so; do not report a
    refactoring the diff does not show. Section 2b says where this step runs.
-5. **Close.** Predict and run the member's full suite, then make the cycle's
-   WIP commit (section 4).
+5. **Close.** Predict and run the package's full test suite, then make the
+   cycle's WIP commit (section 4).
 
 Assert the exact expected values from the examples, not loose checks
 (`is not None`, `len(...) > 0`).
@@ -173,11 +175,11 @@ a confirmed pace, use `per-cycle`.
 
 ## 3. Keep the design documents in step
 - A new or changed sub-package, top-level module or import rule changes the
-  member's `docs/design/package-map.md` and the contract in its
+  package's `docs/design/package-map.md` and the contract in its
   `pyproject.toml` in the same commit, after the owner approved it.
-- A decision goes into the member's `docs/PLAN.md` decisions log on the day
+- A decision goes into the package's `docs/PLAN.md` decisions log on the day
   it is made; a concern's status changes there when it starts and ends.
-- A change to what a member does for its users updates its `README.md`.
+- A change to what a package does for its users updates its `README.md`.
 - These edits go into the subtask's squashed commit, not a separate branch.
 
 ## 4. Commits per subtask, then squash
@@ -210,7 +212,7 @@ a confirmed pace, use `per-cycle`.
 ```
 type(scope): subject
 ```
-- `scope` is the workspace member's folder name, or the narrowest shared
+- `scope` is the package's folder name, or the narrowest shared
   subsystem; omit it only when nothing fits.
 - The whole subject line is at most **100 characters** and the subject starts
   **lowercase**.
@@ -226,12 +228,12 @@ fix(csv-tools): report the line number of a malformed row
 - a row with too few columns exits 2 instead of 1
 ```
 
-## 5. Gates (from the workspace root)
-- **Every WIP commit:** `uv run poe fmt`, then `uv run poe check` and
-  `uv run --package <member> pytest projects/<member>` for every changed
-  member. Skipped tests from the test list are allowed.
+## 5. Gates (from the repository root)
+- **Every WIP commit:** `uv run poe fmt`, then `uv run poe check`, then the
+  test command for every changed package (the nearest `AGENTS.md` names it).
+  Skipped tests from the test list are allowed.
 - **Full gate** (before and after the squash, and before every push): the
-  same, plus `uv run poe test` for the whole workspace.
+  same, plus `uv run poe test` for the whole repository.
 - `uv run poe fmt` rewrites files; stage its result before committing, or CI's
   format check fails on the commit.
 - The CI configuration is the authority. If it runs a check this list does not

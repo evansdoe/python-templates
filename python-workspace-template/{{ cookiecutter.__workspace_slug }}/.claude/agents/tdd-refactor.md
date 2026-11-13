@@ -38,9 +38,9 @@ Check where code lives and what shape it takes against
 function or to imitate a pattern. Linter output is evidence, not a substitute
 for the review.
 
-## Commands (from the workspace root you were given)
-- `uv run --package <member> pytest projects/<member>/<test file>::<active test>`,
-  then the member suite with `uv run --package <member> pytest projects/<member>`
+## Commands (from the repository root you were given)
+- The active test first, then the package's full suite, with the test command
+  you were given (it is in the package's `AGENTS.md`).
 - `uv run poe fmt`, then `uv run poe check`
 
 ## Report to the main agent
@@ -50,5 +50,5 @@ for the review.
 - **No change:** the concrete reason, referring to the actual code and rules.
   "Already simple" alone is not a reason.
 - **Files changed:** production files only.
-- **Final:** predictions correct out of total, the member suite result, and
+- **Final:** predictions correct out of total, the package's suite result, and
   the `poe check` result.
