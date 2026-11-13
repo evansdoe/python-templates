@@ -14,6 +14,8 @@ Test tiers:
 import os
 import re
 import subprocess
+import sys
+import tomllib
 
 import pytest
 import yaml
@@ -460,6 +462,97 @@ def test_python_version_file(cookies):
     result = bake(cookies, python_version="3.15")
     content = (result.project_path / ".python-version").read_text().strip()
     assert content == "3.15"
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Architecture gate: an import contract plus a test that runs it, so a new
+# package cannot grow a flat pile of top-level modules unnoticed
+# ──────────────────────────────────────────────────────────────────────────
+def run_package_tests(project_path, *pytest_args):
+    """Run the baked package's own tests against its src/ folder."""
+    env = {**os.environ, "PYTHONPATH": str(project_path / "src")}
+    return subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", *pytest_args],
+        cwd=project_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+
+
+def add_module(project_path, relative, content):
+    """Write a file under the baked project, creating package folders."""
+    target = project_path / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if "src" in target.parts:
+        (target.parent / "__init__.py").touch()
+    target.write_text(content)
+
+
+def test_architecture_test_file_is_baked(cookies):
+    assert (bake(cookies).project_path / "tests" / "test_architecture.py").exists()
+
+
+def test_import_linter_is_a_test_dependency(cookies):
+    pyproject = tomllib.loads((bake(cookies).project_path / "pyproject.toml").read_text())
+    test_group = pyproject["dependency-groups"]["test"]
+    assert any(dep.startswith("import-linter") for dep in test_group), test_group
+
+
+def test_layers_contract_is_exhaustive_for_the_package(cookies):
+    pyproject = tomllib.loads((bake(cookies).project_path / "pyproject.toml").read_text())
+    config = pyproject.get("tool", {}).get("importlinter", {})
+    assert config.get("root_package") == "test_package"
+    layers = [c for c in config.get("contracts", []) if c.get("type") == "layers"]
+    assert len(layers) == 1, config
+    assert layers[0].get("containers") == ["test_package"]
+    assert layers[0].get("exhaustive") is True
+
+
+def test_fresh_package_passes_its_architecture_test(cookies):
+    proc = run_package_tests(bake(cookies).project_path, "tests/test_architecture.py")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_undeclared_top_level_module_fails_the_architecture_test(cookies):
+    root = bake(cookies).project_path
+    (root / "src" / "test_package" / "llm_cache.py").write_text("VALUE = 1\n")
+    proc = run_package_tests(root, "tests/test_architecture.py")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "test_package.llm_cache" in proc.stdout
+
+
+def test_unit_folder_is_baked(cookies):
+    assert (bake(cookies).project_path / "tests" / "unit").is_dir()
+
+
+def test_pytest_uses_importlib_mode(cookies):
+    pyproject = tomllib.loads((bake(cookies).project_path / "pyproject.toml").read_text())
+    assert "--import-mode=importlib" in pyproject["tool"]["pytest"]["ini_options"]["addopts"]
+
+
+def test_same_named_test_files_in_two_unit_folders_collect(cookies):
+    root = bake(cookies).project_path
+    for part in ("sources", "storage"):
+        add_module(root, f"src/test_package/{part}/models.py", "VALUE = 1\n")
+        add_module(
+            root,
+            f"tests/unit/{part}/test_models.py",
+            f"from test_package.{part}.models import VALUE\n\n\n"
+            "def test_value():\n    assert VALUE == 1\n",
+        )
+    proc = run_package_tests(root, "tests/unit")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "2 passed" in proc.stdout
+
+
+def test_unit_folder_without_matching_package_fails_the_architecture_test(cookies):
+    root = bake(cookies).project_path
+    add_module(root, "tests/unit/ghost/test_something.py", "def test_nothing():\n    assert True\n")
+    proc = run_package_tests(root, "tests/test_architecture.py")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "tests/unit/ghost" in proc.stdout
 
 
 # ──────────────────────────────────────────────────────────────────────────
