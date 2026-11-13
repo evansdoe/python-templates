@@ -315,6 +315,55 @@ def test_unit_folder_without_matching_package_fails_the_architecture_test(cookie
 
 
 # ──────────────────────────────────────────────────────────────────────────
+# Agent and planning files: where an agent (or a new teammate) learns how this
+# member is built, what is planned, and which sub-packages exist and why
+# ──────────────────────────────────────────────────────────────────────────
+AGENTS_MD_MAX_LINES = 60
+
+
+def headings(path):
+    return [line.strip() for line in path.read_text().splitlines() if line.startswith("#")]
+
+
+def test_agents_md_is_short_and_points_to_the_design_files(cookies):
+    result = bake(cookies)
+    agents = result.project_path / "AGENTS.md"
+    assert agents.exists()
+    text = agents.read_text()
+    assert len(text.splitlines()) <= AGENTS_MD_MAX_LINES
+    for pointer in [
+        "docs/PLAN.md",
+        "docs/design/package-map.md",
+        "tests/test_architecture.py",
+        "uv run --package test-project pytest",
+    ]:
+        assert pointer in text, f"AGENTS.md should mention {pointer}"
+
+
+def test_claude_md_only_imports_agents_md(cookies):
+    result = bake(cookies)
+    assert (result.project_path / "CLAUDE.md").read_text().strip() == "@AGENTS.md"
+
+
+def test_plan_has_concerns_decisions_and_open_sections(cookies):
+    result = bake(cookies)
+    plan = result.project_path / "docs" / "PLAN.md"
+    assert plan.exists()
+    assert headings(plan) == ["# Plan", "## Concerns", "## Decisions log", "## Open"]
+    assert "| # | Branch | Delivers | Status |" in plan.read_text()
+
+
+def test_package_map_has_one_row_per_sub_package_slot(cookies):
+    result = bake(cookies)
+    package_map = result.project_path / "docs" / "design" / "package-map.md"
+    assert package_map.exists()
+    text = package_map.read_text()
+    assert "| Sub-package | Role | What belongs here | May import |" in text
+    assert "test_project" in text
+    assert "[tool.importlinter]" in text
+
+
+# ──────────────────────────────────────────────────────────────────────────
 # Hygiene: no Jinja leaks, valid YAML
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize("project_kind", PROJECT_KINDS)
