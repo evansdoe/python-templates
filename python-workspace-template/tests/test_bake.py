@@ -445,6 +445,24 @@ def test_skill_code_blocks_pass_ruff_format(cookies):
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
+@pytest.mark.parametrize("root_kind", ROOT_KINDS)
+def test_ruff_sorts_a_members_package_as_first_party(cookies, root_kind):
+    """A member's tests import its package; ruff must not call it third-party."""
+    root = bake(cookies, root_kind=root_kind).project_path
+    member = root / "projects" / "my-member"
+    (member / "src" / "my_member").mkdir(parents=True)
+    (member / "src" / "my_member" / "__init__.py").write_text("")
+    (member / "tests").mkdir()
+    (member / "tests" / "test_a.py").write_text("import yaml\n\nfrom my_member import a\n")
+    proc = subprocess.run(
+        ["uvx", "ruff", "check", "--select", "I", "projects"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Hygiene: no Jinja leaks, valid YAML
 # ──────────────────────────────────────────────────────────────────────────
