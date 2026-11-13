@@ -169,8 +169,9 @@ def test_devcontainer_toggle(cookies):
 
 def test_docs_toggle(cookies):
     off = bake(cookies, include_docs="no")
-    assert not (off.project_path / "docs").exists()
+    assert not (off.project_path / "docs" / "index.md").exists()
     assert not (off.project_path / "mkdocs.yml").exists()
+    assert (off.project_path / "docs" / "PLAN.md").exists(), "the plan is not part of the site"
 
     on = bake(cookies, include_docs="yes")
     assert (on.project_path / "mkdocs.yml").exists()
@@ -553,6 +554,102 @@ def test_unit_folder_without_matching_package_fails_the_architecture_test(cookie
     proc = run_package_tests(root, "tests/test_architecture.py")
     assert proc.returncode == 1, proc.stdout + proc.stderr
     assert "tests/unit/ghost" in proc.stdout
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Agent and planning files. docs/PLAN.md and docs/design/ are baked whether or
+# not the MkDocs site (include_docs) is, so the plan and the map always exist
+# ──────────────────────────────────────────────────────────────────────────
+AGENTS_MD_MAX_LINES = 60
+DOCS_CHOICES = ["yes", "no"]
+
+
+def headings(path):
+    return [line.strip() for line in path.read_text().splitlines() if line.startswith("#")]
+
+
+def test_agents_md_is_short_and_points_to_the_design_files(cookies):
+    agents = bake(cookies).project_path / "AGENTS.md"
+    assert agents.exists()
+    text = agents.read_text()
+    assert len(text.splitlines()) <= AGENTS_MD_MAX_LINES
+    for pointer in ["docs/PLAN.md", "docs/design/package-map.md", "tests/test_architecture.py", "uv run pytest"]:
+        assert pointer in text, f"AGENTS.md should mention {pointer}"
+
+
+def test_agents_md_says_when_to_split_a_module(cookies):
+    text = " ".join((bake(cookies).project_path / "AGENTS.md").read_text().split())
+    assert "one module per role" in text.lower()
+    assert "150 lines" in text
+    assert "two reasons to change" in text
+
+
+def test_claude_md_only_imports_agents_md(cookies):
+    assert (bake(cookies).project_path / "CLAUDE.md").read_text().strip() == "@AGENTS.md"
+
+
+@pytest.mark.parametrize("include_docs", DOCS_CHOICES)
+def test_plan_has_concerns_decisions_and_open_sections(cookies, include_docs):
+    plan = bake(cookies, include_docs=include_docs).project_path / "docs" / "PLAN.md"
+    assert plan.exists()
+    assert headings(plan) == ["# Plan", "## Concerns", "## Decisions log", "## Open"]
+    assert "| # | Branch | Delivers | Status |" in plan.read_text()
+
+
+@pytest.mark.parametrize("include_docs", DOCS_CHOICES)
+def test_package_map_has_one_row_per_sub_package_slot(cookies, include_docs):
+    package_map = bake(cookies, include_docs=include_docs).project_path / "docs" / "design" / "package-map.md"
+    assert package_map.exists()
+    text = package_map.read_text()
+    assert "| Sub-package | Role | What belongs here | May import |" in text
+    assert "test_package" in text
+    assert "[tool.importlinter]" in text
+
+
+def test_docs_site_files_still_follow_include_docs(cookies):
+    root = bake(cookies, include_docs="no").project_path
+    assert not (root / "mkdocs.yml").exists()
+    assert not (root / "docs" / "index.md").exists()
+
+
+def declare_sub_package(project_path, name, *, in_map, in_contract):
+    """Create src/test_package/<name>/ and declare it in the map, the contract, or both."""
+    add_module(project_path, f"src/test_package/{name}/models.py", "VALUE = 1\n")
+    if in_contract:
+        pyproject = project_path / "pyproject.toml"
+        text = pyproject.read_text()
+        assert 'layers = ["(__main__)"]' in text
+        pyproject.write_text(text.replace('layers = ["(__main__)"]', f'layers = ["(__main__)", "{name}"]'))
+    if in_map:
+        package_map = project_path / "docs" / "design" / "package-map.md"
+        text = package_map.read_text()
+        assert "| _none yet_ | | | |" in text
+        row = f"| `{name}` | subject logic | Data types of the subject | nothing |"
+        package_map.write_text(text.replace("| _none yet_ | | | |", row))
+
+
+@pytest.mark.parametrize("include_docs", DOCS_CHOICES)
+def test_sub_package_in_map_and_contract_passes(cookies, include_docs):
+    root = bake(cookies, include_docs=include_docs).project_path
+    declare_sub_package(root, "domain", in_map=True, in_contract=True)
+    proc = run_package_tests(root, "tests/test_architecture.py")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_sub_package_missing_from_map_fails(cookies):
+    root = bake(cookies).project_path
+    declare_sub_package(root, "domain", in_map=False, in_contract=True)
+    proc = run_package_tests(root, "tests/test_architecture.py")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "in the contract but not in the package map: ['domain']" in proc.stdout
+
+
+def test_sub_package_missing_from_contract_fails(cookies):
+    root = bake(cookies).project_path
+    declare_sub_package(root, "domain", in_map=True, in_contract=False)
+    proc = run_package_tests(root, "tests/test_architecture.py")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "in the package map but not in the contract: ['domain']" in proc.stdout
 
 
 # ──────────────────────────────────────────────────────────────────────────

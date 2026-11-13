@@ -38,6 +38,15 @@ uv run poe all
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full task list.
+
+How the code is organised:
+
+- [docs/design/package-map.md](docs/design/package-map.md): the agreed
+  sub-packages, enforced by `[tool.importlinter]` in `pyproject.toml` and
+  checked by `tests/test_architecture.py`.
+- [docs/PLAN.md](docs/PLAN.md): concerns, decisions and open questions.
+- `tests/unit/` mirrors the package's sub-packages.
+- [AGENTS.md](AGENTS.md): instructions for coding agents.
 {%- if cookiecutter.include_danger == "yes" %}
 
 ### Danger.js (one-time setup)
