@@ -19,9 +19,10 @@ one.
   If the agent is not available, refactor inline.
 - The subagent does not see the conversation, so the delegation prompt must
   be self-contained: the subtask's example map, the active test's name, the
-  changed production files and their tests, the workspace member, and the
-  repository path. Its own file holds the refactor contract (no test edits, no
-  new behaviour, one refactoring at a time, predictions before every check).
+  changed production files and their tests, the package and its test command
+  (from the nearest `AGENTS.md`), and the repository path. Its own file holds
+  the refactor contract (no test edits, no new behaviour, one refactoring at a
+  time, predictions before every check).
 - The subagent never talks to the user and never commits. Afterwards the main
   agent checks that `git diff --name-only` shows no test files changed, that
   the tests and gates are green, and that the report matches the actual diff,

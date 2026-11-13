@@ -11,11 +11,14 @@ Test tiers:
   - test_integration_*: actually runs uv sync (slow, marked)
 """
 
+import hashlib
 import os
 import re
 import subprocess
 import sys
 import tomllib
+
+from pathlib import Path
 
 import pytest
 import yaml
@@ -83,7 +86,7 @@ def test_bake_core_matrix(cookies, ci_platform, type_checker):
 )
 def test_ci_platform_file_routing(cookies, ci_platform, expect_github, expect_gitlab):
     result = bake(cookies, ci_platform=ci_platform)
-    assert (result.project_path / ".github").exists() == expect_github
+    assert (result.project_path / ".github" / "workflows").exists() == expect_github
     assert (result.project_path / ".gitlab-ci.yml").exists() == expect_gitlab
     assert (result.project_path / ".gitlab").exists() == expect_gitlab
 
@@ -650,6 +653,182 @@ def test_sub_package_missing_from_contract_fails(cookies):
     proc = run_package_tests(root, "tests/test_architecture.py")
     assert proc.returncode == 1, proc.stdout + proc.stderr
     assert "in the package map but not in the contract: ['domain']" in proc.stdout
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Skills and agents: python-design (shared with the workspace template),
+# dev-workflow and the tdd-refactor subagent
+# ──────────────────────────────────────────────────────────────────────────
+WORKSPACE_TEMPLATE = Path(__file__).resolve().parents[2] / "python-workspace-template"
+SKILLS = {
+    "python-design": [
+        "SKILL.md",
+        "references/boundaries.md",
+        "references/code-shapes.md",
+        "references/existing-packages.md",
+        "references/quality-checks.md",
+    ],
+    "dev-workflow": [
+        "SKILL.md",
+        "references/isolated-refactor.md",
+        "references/pace.md",
+        "references/review-comments.md",
+    ],
+}
+AGENT_COPILOT = ".github/agents/tdd-refactor.agent.md"
+AGENT_CLAUDE = ".claude/agents/tdd-refactor.md"
+PRIVATE_NAME_HASHES = {
+    "990bb270a89d9423", "54a3c6aaf3e5e627", "5990287170f076d9", "f01d6a140bd94f2b",
+    "27d5a2e73131fdf9", "e48d6e93afa904e9", "d4d9592a499bbf85", "ee3caf2caa313b81",
+    "4dcf4c826d72fa20", "a0b40b11e98e15f1", "b1968b190dd92b35",
+}  # fmt: skip
+TICKET_ID = re.compile(r"(?<![\w.])[A-Z]{2,10}-\d{2,6}(?![\w.])")
+ABSOLUTE_HOME_PATH = re.compile(r"(?<![\w.])/(root|home/\w+|Users/\w+)/")
+
+
+def split_frontmatter(path):
+    _, front, body = path.read_text().split("---", 2)
+    return yaml.safe_load(front), body
+
+
+def agent_files_text(root):
+    files = [root / AGENT_COPILOT, root / AGENT_CLAUDE]
+    files += [root / ".github/skills/dev-workflow" / name for name in SKILLS["dev-workflow"]]
+    return "\n".join(path.read_text() for path in files)
+
+
+@pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
+def test_skills_are_baked_and_linked_for_claude(cookies, ci_platform):
+    root = bake(cookies, ci_platform=ci_platform).project_path
+    for skill, files in SKILLS.items():
+        for name in files:
+            assert (root / ".github/skills" / skill / name).is_file(), f"missing {skill}/{name}"
+        assert split_frontmatter(root / ".github/skills" / skill / "SKILL.md")[0]["name"] == skill
+        link = root / ".claude/skills" / skill
+        assert link.is_symlink(), f".claude/skills/{skill} should be a symlink"
+        assert os.readlink(link) == f"../../.github/skills/{skill}"
+
+
+def test_gitlab_package_keeps_skills_but_drops_workflows(cookies):
+    root = bake(cookies, ci_platform="gitlab").project_path
+    assert not (root / ".github/workflows").exists()
+    assert (root / ".github/skills/python-design/SKILL.md").is_file()
+
+
+def test_skills_and_agents_are_the_same_as_in_the_workspace_template(cookies):
+    """One text per skill and agent, two templates: a change must reach both."""
+    root = bake(cookies).project_path
+    workspace = WORKSPACE_TEMPLATE / "{{ cookiecutter.__workspace_slug }}"
+    shared = [f".github/skills/{skill}/{name}" for skill, files in SKILLS.items() for name in files]
+    for rel in [*shared, AGENT_COPILOT, AGENT_CLAUDE]:
+        assert (root / rel).read_text() == (workspace / rel).read_text(), rel
+
+
+def test_refactor_agent_has_one_body_for_copilot_and_claude(cookies):
+    root = bake(cookies).project_path
+    copilot_front, copilot_body = split_frontmatter(root / AGENT_COPILOT)
+    claude_front, claude_body = split_frontmatter(root / AGENT_CLAUDE)
+    assert copilot_front["name"] == claude_front["name"] == "tdd-refactor"
+    assert copilot_body == claude_body
+
+
+def test_agents_md_points_to_both_skills(cookies):
+    text = (bake(cookies).project_path / "AGENTS.md").read_text()
+    assert ".github/skills/python-design/SKILL.md" in text
+    assert ".github/skills/dev-workflow/SKILL.md" in text
+
+
+@pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
+def test_baked_package_has_no_private_names(cookies, ci_platform):
+    root = bake(cookies, ci_platform=ci_platform, include_danger="yes").project_path
+    found = []
+    for path in root.rglob("*"):
+        if not path.is_file() or path.is_symlink():
+            continue
+        try:
+            text = path.read_text()
+        except UnicodeDecodeError:
+            continue
+        for token in set(re.findall(r"[a-z0-9][a-z0-9_-]*", text.lower())):
+            if hashlib.sha256(token.encode()).hexdigest()[:16] in PRIVATE_NAME_HASHES:
+                found.append(f"{path.relative_to(root)}: private name")
+        found += [f"{path.relative_to(root)}: path {m.group(0)}" for m in ABSOLUTE_HOME_PATH.finditer(text)]
+    assert not found, "\n".join(found)
+
+
+def test_agent_files_have_no_ticket_ids(cookies):
+    assert TICKET_ID.findall(agent_files_text(bake(cookies).project_path)) == []
+
+
+@pytest.mark.parametrize("type_checker", TYPE_CHECKERS)
+def test_agent_files_name_only_poe_tasks_that_exist(cookies, type_checker):
+    root = bake(cookies, type_checker=type_checker).project_path
+    defined = set(tomllib.loads((root / "pyproject.toml").read_text())["tool"]["poe"]["tasks"])
+    text = agent_files_text(root)
+    mentioned = set(re.findall(r"uv run poe ([\w:]+)", text))
+    assert {"check", "test"} <= mentioned
+    assert mentioned <= defined, f"undefined poe tasks: {mentioned - defined}"
+    assert not re.search(r"\b(ty check|mypy)\b", text), "call the type checker through poe"
+
+
+def test_agent_files_point_only_to_files_that_exist(cookies):
+    root = bake(cookies).project_path
+    paths = set(re.findall(r"`(\.(?:github|claude)/[^`*<>\s]+)`", agent_files_text(root)))
+    assert paths
+    missing = sorted(p for p in paths if not (root / p).exists())
+    assert not missing, f"named but not baked: {missing}"
+
+
+def test_agent_markdown_code_blocks_pass_ruff_format(cookies):
+    root = bake(cookies).project_path
+    proc = subprocess.run(["uvx", "ruff", "format", "--check", ".github"], cwd=root, capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Size limits: ruff flags functions that do too much
+# ──────────────────────────────────────────────────────────────────────────
+SIZE_LIMITS = {"max-args": 5, "max-branches": 12, "max-statements": 50, "max-returns": 6}
+TOO_MANY_ARGS = (
+    '"""Doc."""\n\n\ndef build(a: int, b: int, c: int, d: int, e: int, f: int) -> int:\n'
+    '    """Doc."""\n    return a + b + c + d + e + f\n'
+)
+TOO_COMPLEX = (
+    '"""Doc."""\n\n\ndef grade(x: int) -> str:\n    """Doc."""\n'
+    + "".join(f"    if x == {i}:\n        return 'v{i}'\n" for i in range(11))
+    + "    return 'none'\n"
+)
+MANY_FIXTURES = "def test_many(a, b, c, d, e, f):\n    assert a\n"
+
+
+def ruff_findings(root, files):
+    for rel, text in files.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text)
+    proc = subprocess.run(
+        ["uvx", "ruff", "check", "--output-format", "concise", *files], cwd=root, capture_output=True, text=True
+    )
+    return proc.stdout
+
+
+def test_ruff_sets_size_limits(cookies):
+    config = tomllib.loads((bake(cookies).project_path / "ruff.toml").read_text())
+    assert {"C90", "PLR0911", "PLR0912", "PLR0913", "PLR0915"} <= set(config["lint"]["select"])
+    assert config["lint"]["mccabe"]["max-complexity"] == 10
+    assert {k: config["lint"]["pylint"][k] for k in SIZE_LIMITS} == SIZE_LIMITS
+
+
+def test_ruff_flags_functions_that_do_too_much(cookies):
+    root = bake(cookies).project_path
+    out = ruff_findings(root, {"src/test_package/args.py": TOO_MANY_ARGS, "src/test_package/branches.py": TOO_COMPLEX})
+    assert "args.py" in out and "PLR0913" in out, out
+    assert "branches.py" in out and "C901" in out, out
+    assert "PLR0911" in out, out
+
+
+def test_ruff_size_limits_spare_test_fixtures(cookies):
+    out = ruff_findings(bake(cookies).project_path, {"tests/test_many.py": MANY_FIXTURES})
+    assert "PLR0913" not in out, out
 
 
 # ──────────────────────────────────────────────────────────────────────────

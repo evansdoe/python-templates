@@ -16,11 +16,27 @@ select = [
     "RUF",       # ruff-specific
     "D",         # pydocstyle
     "ANN",       # flake8-annotations
+    "C90",       # mccabe: too many paths through one function
+    "PLR0911",   # too many return statements
+    "PLR0912",   # too many branches
+    "PLR0913",   # too many arguments
+    "PLR0915",   # too many statements
 ]
 ignore = ["D203", "D213", "ANN401"]
 
 [lint.per-file-ignores]
-"tests/**" = ["D", "ANN", "S101"]
+"tests/**" = ["D", "ANN", "S101", "PLR0913"]
+
+# Size limits (the ruff defaults, written out). When one fires, split by
+# responsibility; do not raise a limit or add noqa without the owner's approval.
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-args = 5
+max-branches = 12
+max-statements = 50
+max-returns = 6
 
 [lint.pydocstyle]
 convention = "google"

@@ -7,10 +7,22 @@ name: Test python-package-template
 on:
   push:
     branches: [main]
-    paths: ["python-package-template/**", ".github/workflows/test-python-package-template.yml"]
+    paths:
+      - "python-package-template/**"
+      - ".github/workflows/test-python-package-template.yml"
+      # Shared skills and agents: the package tests check both copies match.
+      - "python-workspace-template/*/.github/skills/**"
+      - "python-workspace-template/*/.github/agents/**"
+      - "python-workspace-template/*/.claude/agents/**"
   pull_request:
     branches: [main]
-    paths: ["python-package-template/**", ".github/workflows/test-python-package-template.yml"]
+    paths:
+      - "python-package-template/**"
+      - ".github/workflows/test-python-package-template.yml"
+      # Shared skills and agents: the package tests check both copies match.
+      - "python-workspace-template/*/.github/skills/**"
+      - "python-workspace-template/*/.github/agents/**"
+      - "python-workspace-template/*/.claude/agents/**"
   workflow_dispatch:
 
 defaults:
