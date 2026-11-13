@@ -13,6 +13,9 @@ entries below it.
 | --- | --- | --- | --- |
 | _none yet_ | | | |
 
+Write each name in backticks, exactly as the folder or module is named
+(for example `` `storage` ``). `tests/test_architecture.py` reads this column.
+
 ## Roles
 
 Names come from this package's subject. Roles are the same in every package:

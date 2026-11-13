@@ -364,6 +364,49 @@ def test_package_map_has_one_row_per_sub_package_slot(cookies):
 
 
 # ──────────────────────────────────────────────────────────────────────────
+# The package map (docs) and the import contract (pyproject) name the same
+# sub-packages, so the approved design and the enforced one cannot drift
+# ──────────────────────────────────────────────────────────────────────────
+def declare_sub_package(project_path, name, *, in_map, in_contract):
+    """Create src/test_project/<name>/ and declare it in the map, the contract, or both."""
+    add_module(project_path, f"src/test_project/{name}/models.py", "VALUE = 1\n")
+    if in_contract:
+        pyproject = project_path / "pyproject.toml"
+        text = pyproject.read_text()
+        assert 'layers = ["(__main__)"]' in text
+        pyproject.write_text(text.replace('layers = ["(__main__)"]', f'layers = ["(__main__)", "{name}"]'))
+    if in_map:
+        package_map = project_path / "docs" / "design" / "package-map.md"
+        text = package_map.read_text()
+        assert "| _none yet_ | | | |" in text
+        row = f"| `{name}` | subject logic | Data types of the subject | nothing |"
+        package_map.write_text(text.replace("| _none yet_ | | | |", row))
+
+
+def test_sub_package_in_map_and_contract_passes(cookies):
+    result = bake(cookies)
+    declare_sub_package(result.project_path, "domain", in_map=True, in_contract=True)
+    proc = run_member_tests(result.project_path, "tests/test_architecture.py")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_sub_package_missing_from_map_fails(cookies):
+    result = bake(cookies)
+    declare_sub_package(result.project_path, "domain", in_map=False, in_contract=True)
+    proc = run_member_tests(result.project_path, "tests/test_architecture.py")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "in the contract but not in the package map: ['domain']" in proc.stdout
+
+
+def test_sub_package_missing_from_contract_fails(cookies):
+    result = bake(cookies)
+    declare_sub_package(result.project_path, "domain", in_map=True, in_contract=False)
+    proc = run_member_tests(result.project_path, "tests/test_architecture.py")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "in the package map but not in the contract: ['domain']" in proc.stdout
+
+
+# ──────────────────────────────────────────────────────────────────────────
 # Hygiene: no Jinja leaks, valid YAML
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize("project_kind", PROJECT_KINDS)
