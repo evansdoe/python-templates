@@ -12,7 +12,9 @@ Test tiers:
 """
 
 import os
+import re
 import subprocess
+import tomllib
 
 import pytest
 import yaml
@@ -330,6 +332,8 @@ def test_core_files_always_present(cookies):
     for path in [
         "pyproject.toml",
         "README.md",
+        "AGENTS.md",
+        "CLAUDE.md",
         "CHANGELOG.md",
         "CONTRIBUTING.md",
         "LICENSE",
@@ -342,6 +346,45 @@ def test_core_files_always_present(cookies):
         ".vscode/settings.json",
     ]:
         assert (result.project_path / path).exists(), f"{path} should always exist"
+
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Agent files: a short root AGENTS.md with the gate commands and pointers,
+# and a CLAUDE.md that imports it, whatever the CI platform
+# ──────────────────────────────────────────────────────────────────────────
+AGENTS_MD_MAX_LINES = 60
+
+
+@pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
+def test_root_agent_files_are_baked(cookies, ci_platform):
+    result = bake(cookies, ci_platform=ci_platform)
+    agents = result.project_path / "AGENTS.md"
+    assert agents.exists()
+    assert len(agents.read_text().splitlines()) <= AGENTS_MD_MAX_LINES
+    assert (result.project_path / "CLAUDE.md").read_text().strip() == "@AGENTS.md"
+
+
+@pytest.mark.parametrize("type_checker", TYPE_CHECKERS)
+def test_root_agents_md_names_only_poe_tasks_that_exist(cookies, type_checker):
+    result = bake(cookies, type_checker=type_checker)
+    pyproject = tomllib.loads((result.project_path / "pyproject.toml").read_text())
+    defined = set(pyproject["tool"]["poe"]["tasks"])
+    mentioned = set(re.findall(r"uv run poe ([\w:]+)", (result.project_path / "AGENTS.md").read_text()))
+    assert {"check", "test"} <= mentioned
+    assert mentioned <= defined, f"AGENTS.md names undefined poe tasks: {mentioned - defined}"
+
+
+def test_root_agents_md_points_to_member_files(cookies):
+    result = bake(cookies)
+    text = (result.project_path / "AGENTS.md").read_text()
+    for pointer in [
+        "projects/<member>/AGENTS.md",
+        "docs/PLAN.md",
+        "docs/design/package-map.md",
+        "--output-dir projects/",
+    ]:
+        assert pointer in text, f"AGENTS.md should mention {pointer}"
 
 
 # ──────────────────────────────────────────────────────────────────────────
