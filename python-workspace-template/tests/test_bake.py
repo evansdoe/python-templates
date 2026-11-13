@@ -431,10 +431,13 @@ def test_root_agents_md_points_to_the_skill(cookies):
 
 
 def test_skill_code_blocks_pass_ruff_format(cookies):
-    """Ruff formats Python blocks in Markdown; a fresh workspace must pass."""
+    """Ruff formats Python blocks in Markdown; a fresh workspace must pass.
+
+    uvx runs the newest ruff, which is what the workspace's `ruff>=0.9` resolves to.
+    """
     root = bake(cookies).project_path
     proc = subprocess.run(
-        ["ruff", "format", "--check", SKILL_DIR],
+        ["uvx", "ruff", "format", "--check", SKILL_DIR],
         cwd=root,
         capture_output=True,
         text=True,
