@@ -340,6 +340,14 @@ def test_agents_md_is_short_and_points_to_the_design_files(cookies):
         assert pointer in text, f"AGENTS.md should mention {pointer}"
 
 
+def test_agents_md_says_when_to_split_a_module(cookies):
+    """Trial: agents over-split into one-function-per-file modules."""
+    text = " ".join((bake(cookies).project_path / "AGENTS.md").read_text().split())
+    assert "one module per role" in text.lower()
+    assert "150 lines" in text
+    assert "two reasons to change" in text
+
+
 def test_claude_md_only_imports_agents_md(cookies):
     result = bake(cookies)
     assert (result.project_path / "CLAUDE.md").read_text().strip() == "@AGENTS.md"
