@@ -11,6 +11,7 @@ Test tiers:
   - test_integration_*: actually runs uv sync (slow, marked)
 """
 
+import hashlib
 import os
 import re
 import subprocess
@@ -430,19 +431,123 @@ def test_root_agents_md_points_to_the_skill(cookies):
     assert f"{SKILL_DIR}/SKILL.md" in text
 
 
-def test_skill_code_blocks_pass_ruff_format(cookies):
+def test_agent_markdown_code_blocks_pass_ruff_format(cookies):
     """Ruff formats Python blocks in Markdown; a fresh workspace must pass.
 
     uvx runs the newest ruff, which is what the workspace's `ruff>=0.9` resolves to.
     """
     root = bake(cookies).project_path
     proc = subprocess.run(
-        ["uvx", "ruff", "format", "--check", SKILL_DIR],
+        ["uvx", "ruff", "format", "--check", ".github"],
         cwd=root,
         capture_output=True,
         text=True,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# dev-workflow skill and tdd-refactor subagent (sanitised from a private repo)
+# ──────────────────────────────────────────────────────────────────────────
+WORKFLOW_DIR = ".github/skills/dev-workflow"
+WORKFLOW_FILES = [
+    "SKILL.md",
+    "references/isolated-refactor.md",
+    "references/pace.md",
+    "references/review-comments.md",
+]
+AGENT_COPILOT = ".github/agents/tdd-refactor.agent.md"
+AGENT_CLAUDE = ".claude/agents/tdd-refactor.md"
+
+# SHA-256 prefixes of private names (employer, internal projects and groups)
+# that must never reach this public template. Hashed so this file does not
+# publish them.
+PRIVATE_NAME_HASHES = {
+    "990bb270a89d9423", "54a3c6aaf3e5e627", "5990287170f076d9", "f01d6a140bd94f2b",
+    "27d5a2e73131fdf9", "e48d6e93afa904e9", "d4d9592a499bbf85", "ee3caf2caa313b81",
+    "4dcf4c826d72fa20", "a0b40b11e98e15f1", "b1968b190dd92b35",
+}  # fmt: skip
+TICKET_ID = re.compile(r"(?<![\w.])[A-Z]{2,10}-\d{2,6}(?![\w.])")
+ABSOLUTE_HOME_PATH = re.compile(r"(?<![\w.])/(root|home/\w+|Users/\w+)/")
+
+
+def split_frontmatter(path):
+    _, front, body = path.read_text().split("---", 2)
+    return yaml.safe_load(front), body
+
+
+def agent_files_text(root):
+    files = [root / AGENT_COPILOT, root / AGENT_CLAUDE]
+    files += [root / WORKFLOW_DIR / name for name in WORKFLOW_FILES]
+    return "\n".join(path.read_text() for path in files)
+
+
+@pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
+def test_dev_workflow_skill_and_refactor_agent_are_baked(cookies, ci_platform):
+    root = bake(cookies, ci_platform=ci_platform).project_path
+    for name in WORKFLOW_FILES:
+        assert (root / WORKFLOW_DIR / name).is_file(), f"missing {WORKFLOW_DIR}/{name}"
+    assert split_frontmatter(root / WORKFLOW_DIR / "SKILL.md")[0]["name"] == "dev-workflow"
+    assert (root / ".claude/skills/dev-workflow/SKILL.md").is_file()
+    assert (root / AGENT_COPILOT).is_file()
+    assert (root / AGENT_CLAUDE).is_file()
+
+
+def test_refactor_agent_has_one_body_for_copilot_and_claude(cookies):
+    root = bake(cookies).project_path
+    copilot_front, copilot_body = split_frontmatter(root / AGENT_COPILOT)
+    claude_front, claude_body = split_frontmatter(root / AGENT_CLAUDE)
+    assert copilot_front["name"] == claude_front["name"] == "tdd-refactor"
+    assert copilot_body == claude_body
+
+
+@pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
+def test_baked_workspace_has_no_private_names(cookies, ci_platform):
+    root = bake(cookies, ci_platform=ci_platform, include_danger="yes").project_path
+    found = []
+    for path in root.rglob("*"):
+        if not path.is_file() or path.is_symlink():
+            continue
+        try:
+            text = path.read_text()
+        except UnicodeDecodeError:
+            continue
+        for token in set(re.findall(r"[a-z0-9][a-z0-9_-]*", text.lower())):
+            if hashlib.sha256(token.encode()).hexdigest()[:16] in PRIVATE_NAME_HASHES:
+                found.append(f"{path.relative_to(root)}: private name")
+        found += [f"{path.relative_to(root)}: path {m.group(0)}" for m in ABSOLUTE_HOME_PATH.finditer(text)]
+    assert not found, "\n".join(found)
+
+
+def test_agent_files_have_no_ticket_ids(cookies):
+    text = agent_files_text(bake(cookies).project_path)
+    assert TICKET_ID.findall(text) == []
+
+
+@pytest.mark.parametrize("type_checker", TYPE_CHECKERS)
+def test_agent_files_name_only_poe_tasks_that_exist(cookies, type_checker):
+    """Gates go through poe, so they follow the chosen type checker."""
+    root = bake(cookies, type_checker=type_checker).project_path
+    defined = set(tomllib.loads((root / "pyproject.toml").read_text())["tool"]["poe"]["tasks"])
+    text = agent_files_text(root)
+    mentioned = set(re.findall(r"uv run poe ([\w:]+)", text))
+    assert {"check", "test"} <= mentioned
+    assert mentioned <= defined, f"undefined poe tasks: {mentioned - defined}"
+    assert not re.search(r"\b(ty check|mypy)\b", text), "call the type checker through poe"
+
+
+def test_agent_files_point_only_to_files_that_exist(cookies):
+    root = bake(cookies).project_path
+    paths = set(re.findall(r"`(\.(?:github|claude)/[^`*<>\s]+)`", agent_files_text(root)))
+    assert paths, "expected the agent files to name their companions"
+    missing = sorted(p for p in paths if not (root / p).exists())
+    assert not missing, f"named but not baked: {missing}"
+
+
+def test_root_agents_md_points_to_the_workflow(cookies):
+    """Tools that read only AGENTS.md (no skill discovery) still find it."""
+    text = (bake(cookies).project_path / "AGENTS.md").read_text()
+    assert f"{WORKFLOW_DIR}/SKILL.md" in text
 
 
 @pytest.mark.parametrize("root_kind", ROOT_KINDS)
