@@ -550,6 +550,72 @@ def test_root_agents_md_points_to_the_workflow(cookies):
     assert f"{WORKFLOW_DIR}/SKILL.md" in text
 
 
+# ──────────────────────────────────────────────────────────────────────────
+# Size limits: ruff flags functions that do too much
+# ──────────────────────────────────────────────────────────────────────────
+SIZE_LIMITS = {"max-args": 5, "max-branches": 12, "max-statements": 50, "max-returns": 6}
+
+TOO_MANY_ARGS = '''"""Doc."""
+
+
+def build(a: int, b: int, c: int, d: int, e: int, f: int) -> int:
+    """Doc."""
+    return a + b + c + d + e + f
+'''
+
+TOO_COMPLEX = '"""Doc."""\n\n\ndef grade(x: int) -> str:\n    """Doc."""\n' + "".join(
+    f"    if x == {i}:\n        return 'v{i}'\n" for i in range(11)
+) + "    return 'none'\n"
+
+MANY_FIXTURES = """def test_many(a, b, c, d, e, f):
+    assert a
+"""
+
+
+def ruff_findings(root, files):
+    for rel, text in files.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text)
+    proc = subprocess.run(
+        ["uvx", "ruff", "check", "--output-format", "concise", "projects"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+    )
+    return proc.stdout
+
+
+@pytest.mark.parametrize("root_kind", ROOT_KINDS)
+def test_ruff_sets_size_limits(cookies, root_kind):
+    config = tomllib.loads((bake(cookies, root_kind=root_kind).project_path / "ruff.toml").read_text())
+    selected = set(config["lint"]["select"])
+    assert {"C90", "PLR0911", "PLR0912", "PLR0913", "PLR0915"} <= selected
+    assert config["lint"]["mccabe"]["max-complexity"] == 10
+    assert {k: config["lint"]["pylint"][k] for k in SIZE_LIMITS} == SIZE_LIMITS
+
+
+def test_ruff_flags_functions_that_do_too_much(cookies):
+    root = bake(cookies).project_path
+    out = ruff_findings(
+        root,
+        {
+            "projects/m/src/m/__init__.py": '"""Doc."""\n',
+            "projects/m/src/m/args.py": TOO_MANY_ARGS,
+            "projects/m/src/m/branches.py": TOO_COMPLEX,
+        },
+    )
+    assert "args.py" in out and "PLR0913" in out, out
+    assert "branches.py" in out and "C901" in out, out
+    assert "PLR0911" in out, out
+
+
+def test_ruff_size_limits_spare_test_fixtures(cookies):
+    """A test may take many fixtures; that is not a design smell."""
+    root = bake(cookies).project_path
+    out = ruff_findings(root, {"projects/m/tests/test_many.py": MANY_FIXTURES})
+    assert "PLR0913" not in out, out
+
+
 @pytest.mark.parametrize("root_kind", ROOT_KINDS)
 def test_ruff_sorts_a_members_package_as_first_party(cookies, root_kind):
     """A member's tests import its package; ruff must not call it third-party."""
