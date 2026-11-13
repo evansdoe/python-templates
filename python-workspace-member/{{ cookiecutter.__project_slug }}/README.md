@@ -27,7 +27,11 @@ uv run --package {{ cookiecutter.__project_slug }} {{ cookiecutter.__project_slu
 
 ```
 {{ cookiecutter.__project_slug }}/
-├── pyproject.toml
+├── AGENTS.md              # how to work in this member (CLAUDE.md points to it)
+├── docs/
+│   ├── PLAN.md            # concerns, decisions log, open questions
+│   └── design/package-map.md
+├── pyproject.toml         # includes the import contract
 ├── src/{{ cookiecutter.__module_name }}/
 └── tests/
 ```
