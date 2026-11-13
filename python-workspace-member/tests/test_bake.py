@@ -260,6 +260,58 @@ def test_undeclared_top_level_module_fails_the_architecture_test(cookies):
 
 
 # ──────────────────────────────────────────────────────────────────────────
+# Test layout: unit tests live in tests/unit/ and mirror the package's
+# sub-packages, so a move in src/ forces the matching move in tests/
+# ──────────────────────────────────────────────────────────────────────────
+def add_module(project_path, relative, content):
+    """Write a file under the baked project, creating package folders."""
+    target = project_path / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if "src" in target.parts:
+        (target.parent / "__init__.py").touch()
+    target.write_text(content)
+
+
+def test_unit_folder_is_baked(cookies):
+    result = bake(cookies)
+    assert (result.project_path / "tests" / "unit").is_dir()
+
+
+def test_pytest_uses_importlib_mode(cookies):
+    result = bake(cookies)
+    pyproject = tomllib.loads((result.project_path / "pyproject.toml").read_text())
+    addopts = pyproject["tool"]["pytest"]["ini_options"]["addopts"]
+    assert "--import-mode=importlib" in addopts
+
+
+def test_same_named_test_files_in_two_unit_folders_collect(cookies):
+    result = bake(cookies)
+    for part in ("sources", "storage"):
+        add_module(result.project_path, f"src/test_project/{part}/models.py", "VALUE = 1\n")
+        add_module(
+            result.project_path,
+            f"tests/unit/{part}/test_models.py",
+            f"from test_project.{part}.models import VALUE\n\n\n"
+            "def test_value():\n    assert VALUE == 1\n",
+        )
+    proc = run_member_tests(result.project_path, "tests/unit")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "2 passed" in proc.stdout
+
+
+def test_unit_folder_without_matching_package_fails_the_architecture_test(cookies):
+    result = bake(cookies)
+    add_module(
+        result.project_path,
+        "tests/unit/ghost/test_something.py",
+        "def test_nothing():\n    assert True\n",
+    )
+    proc = run_member_tests(result.project_path, "tests/test_architecture.py")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "tests/unit/ghost" in proc.stdout
+
+
+# ──────────────────────────────────────────────────────────────────────────
 # Hygiene: no Jinja leaks, valid YAML
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize("project_kind", PROJECT_KINDS)
