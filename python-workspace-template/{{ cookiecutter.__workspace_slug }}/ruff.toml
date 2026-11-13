@@ -1,6 +1,6 @@
 target-version = "py{{ cookiecutter.min_python_version|replace('.', '') }}"
 line-length = 88
-src = [{% if cookiecutter.root_kind == "application" %}"src", {% endif %}"projects"]
+src = [{% if cookiecutter.root_kind == "application" %}"src", {% endif %}"projects/*/src"]
 
 [lint]
 select = [
