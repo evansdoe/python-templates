@@ -59,7 +59,7 @@ lint = [
     "ty>=0.0.1a1",
 {%- endif %}
 ]
-test = ["pytest>=8.3", "pytest-cov>=6.0"]
+test = ["pytest>=8.3", "pytest-cov>=6.0", "import-linter>=2.1"]
 {%- if cookiecutter.include_docs == "yes" %}
 docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.27"]
 {%- endif %}
@@ -68,8 +68,21 @@ license = ["licensecheck>=2024.3"]
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
-addopts = "-ra --strict-markers --strict-config"
+addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 pythonpath = ["src"]
+
+# The package map (docs/design/package-map.md) as an enforced contract. Every
+# top-level module or sub-package must be listed in `layers`, highest first;
+# tests/test_architecture.py runs this on every test run.
+[tool.importlinter]
+root_package = "{{ cookiecutter.__module_name }}"
+
+[[tool.importlinter.contracts]]
+name = "Layers: every top-level module has a declared place"
+type = "layers"
+containers = ["{{ cookiecutter.__module_name }}"]
+layers = ["(__main__)"]
+exhaustive = true
 
 [tool.coverage.run]
 source = ["src/{{ cookiecutter.__module_name }}"]
