@@ -20,6 +20,8 @@ Test tiers:
 
 import os
 import subprocess
+import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -199,6 +201,62 @@ def test_no_ruff_section_in_pyproject(cookies):
     result = bake(cookies)
     lines = (result.project_path / "pyproject.toml").read_text().splitlines()
     assert not any(line.strip() == "[tool.ruff]" for line in lines)
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Architecture gate: an import contract plus a test that runs it, so a new
+# member cannot grow a flat pile of top-level modules unnoticed
+# ──────────────────────────────────────────────────────────────────────────
+def run_member_tests(project_path, *pytest_args):
+    """Run the baked member's own tests against its src/ folder."""
+    env = {**os.environ, "PYTHONPATH": str(project_path / "src")}
+    return subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", *pytest_args],
+        cwd=project_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+
+
+def test_architecture_test_file_is_baked(cookies):
+    result = bake(cookies)
+    assert (result.project_path / "tests" / "test_architecture.py").exists()
+
+
+def test_import_linter_is_a_test_dependency(cookies):
+    result = bake(cookies)
+    pyproject = tomllib.loads((result.project_path / "pyproject.toml").read_text())
+    test_group = pyproject["dependency-groups"]["test"]
+    assert any(dep.startswith("import-linter") for dep in test_group), test_group
+
+
+def test_layers_contract_is_exhaustive_for_the_package(cookies):
+    result = bake(cookies)
+    pyproject = tomllib.loads((result.project_path / "pyproject.toml").read_text())
+    config = pyproject.get("tool", {}).get("importlinter", {})
+    assert config.get("root_package") == "test_project"
+    layers = [c for c in config.get("contracts", []) if c.get("type") == "layers"]
+    assert len(layers) == 1, config
+    assert layers[0].get("containers") == ["test_project"]
+    assert layers[0].get("exhaustive") is True
+
+
+@pytest.mark.parametrize("project_kind", PROJECT_KINDS)
+def test_fresh_member_passes_its_architecture_test(cookies, project_kind):
+    result = bake(cookies, project_kind=project_kind)
+    proc = run_member_tests(result.project_path, "tests/test_architecture.py")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_undeclared_top_level_module_fails_the_architecture_test(cookies):
+    result = bake(cookies)
+    stray = result.project_path / "src" / "test_project" / "llm_cache.py"
+    stray.write_text("VALUE = 1\n")
+    proc = run_member_tests(result.project_path, "tests/test_architecture.py")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "test_project.llm_cache" in proc.stdout
 
 
 # ──────────────────────────────────────────────────────────────────────────

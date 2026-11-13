@@ -44,7 +44,9 @@ packages = ["src/{{ cookiecutter.__module_name }}"]
 # Only what this member needs to run its own tests is declared here, so that
 # `uv sync --package {{ cookiecutter.__project_slug }} --group test` works in isolation.
 [dependency-groups]
-test = ["pytest>=8.3", "pytest-cov>=6.0"]
+# import-linter is here, not in the workspace root, because tests/test_architecture.py
+# needs it whenever this member's tests run.
+test = ["pytest>=8.3", "pytest-cov>=6.0", "import-linter>=2.1"]
 
 # Do NOT add a [tool.ruff] section here. Ruff treats the nearest config as
 # authoritative and does not merge it with the workspace root, so a section here
@@ -55,6 +57,27 @@ test = ["pytest>=8.3", "pytest-cov>=6.0"]
 minversion = "8.0"
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
+
+# Architecture contract, checked by tests/test_architecture.py.
+#
+# `layers` lists this package's top-level modules and sub-packages from highest
+# to lowest: an entry may import only from entries below it. Names in
+# parentheses are optional. Put siblings that must not import each other on one
+# line, separated by " | ".
+#
+# `exhaustive = true` means every top-level module or sub-package must appear in
+# `layers`. Adding one without declaring it fails the test, so each new part of
+# the package gets a deliberate place. Example for a small pipeline:
+#   layers = ["(__main__)", "cli", "sources | storage", "domain"]
+[tool.importlinter]
+root_package = "{{ cookiecutter.__module_name }}"
+
+[[tool.importlinter.contracts]]
+name = "Layers: every top-level module has a declared place"
+type = "layers"
+containers = ["{{ cookiecutter.__module_name }}"]
+layers = ["(__main__)"]
+exhaustive = true
 
 [tool.coverage.run]
 source = ["src/{{ cookiecutter.__module_name }}"]
