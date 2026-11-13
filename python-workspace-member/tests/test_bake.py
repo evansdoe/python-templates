@@ -18,6 +18,7 @@ Test tiers:
   - test_integration_*: actually runs uv sync inside a real workspace (slow, marked)
 """
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -36,7 +37,6 @@ DEFAULTS = {
     "python_version": "3.14",
     "min_python_version": "3.14",
     "project_kind": "library",
-    "include_docs": "no",
     "custom_gitlab_pipeline": "no",
     "member_dependencies": "",
     "ruff_override": "no",
@@ -68,9 +68,8 @@ def collect_yaml_files(project_path):
 # Core bake matrix
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize("project_kind", PROJECT_KINDS)
-@pytest.mark.parametrize("include_docs", ["yes", "no"])
-def test_bake_core_matrix(cookies, project_kind, include_docs):
-    result = bake(cookies, project_kind=project_kind, include_docs=include_docs)
+def test_bake_core_matrix(cookies, project_kind):
+    result = bake(cookies, project_kind=project_kind)
     assert result.project_path.name == "test-project"
 
 
@@ -108,12 +107,16 @@ def test_library_has_neither(cookies):
 # ──────────────────────────────────────────────────────────────────────────
 # Feature toggles
 # ──────────────────────────────────────────────────────────────────────────
-def test_docs_toggle(cookies):
-    off = bake(cookies, include_docs="no")
-    assert not (off.project_path / "docs").exists()
+@pytest.mark.parametrize("project_kind", PROJECT_KINDS)
+def test_docs_are_always_baked(cookies, project_kind):
+    result = bake(cookies, project_kind=project_kind)
+    assert (result.project_path / "docs" / "index.md").exists()
 
-    on = bake(cookies, include_docs="yes")
-    assert (on.project_path / "docs" / "index.md").exists()
+
+def test_include_docs_is_not_a_bake_option():
+    options = json.loads((TEMPLATE_ROOT / "cookiecutter.json").read_text())
+    assert "include_docs" not in options
+    assert "include_docs" not in (TEMPLATE_ROOT / "README.md").read_text()
 
 
 def test_custom_gitlab_pipeline_toggle(cookies):

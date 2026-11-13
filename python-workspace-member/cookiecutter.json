@@ -11,10 +11,6 @@
     "application",
     "research"
   ],
-  "include_docs": [
-    "no",
-    "yes"
-  ],
   "custom_gitlab_pipeline": [
     "no",
     "yes"

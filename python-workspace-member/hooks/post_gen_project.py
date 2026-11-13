@@ -8,7 +8,6 @@ from pathlib import Path
 ROOT = Path.cwd()
 SLUG = "{{ cookiecutter.__project_slug }}"
 KIND = "{{ cookiecutter.project_kind }}"
-DOCS = "{{ cookiecutter.include_docs }}" == "yes"
 CUSTOM_PIPELINE = "{{ cookiecutter.custom_gitlab_pipeline }}" == "yes"
 RUFF_OVERRIDE = "{{ cookiecutter.ruff_override }}" == "yes"
 DEPS = [d.strip() for d in "{{ cookiecutter.member_dependencies }}".split(",") if d.strip()]
@@ -23,8 +22,6 @@ def drop(*relative_paths: str) -> None:
             target.unlink()
 
 
-if not DOCS:
-    drop("docs")
 if not CUSTOM_PIPELINE:
     drop(".gitlab-ci.yml")
 if not RUFF_OVERRIDE:
