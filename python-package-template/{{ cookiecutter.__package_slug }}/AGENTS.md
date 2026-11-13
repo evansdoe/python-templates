@@ -27,6 +27,10 @@ uv run poe check          # format check, lint{% if cookiecutter.type_checker !=
 
 ## Rules
 
+- Every code change follows `.github/skills/dev-workflow/SKILL.md`: plan,
+  test first, gates, one pull request.
+- Before adding a module, class or sub-package, read
+  `.github/skills/python-design/SKILL.md`.
 - A new top-level module or sub-package is a design decision. Propose its row
   for the package map, wait for approval, then add it to the map and to
   `layers` in `pyproject.toml` in the same change.
