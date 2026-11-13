@@ -35,7 +35,8 @@ elif CI == "gitlab":
 if not OPTIONS["danger"]:
     drop("scripts/danger", ".gitlab/ci/danger.yml")
 if not OPTIONS["docs"]:
-    drop("docs", "mkdocs.yml")
+    # Only the MkDocs site; docs/PLAN.md and docs/design/ are always kept.
+    drop("mkdocs.yml", "docs/index.md", "docs/api.md")
 if not OPTIONS["precommit"]:
     drop(".pre-commit-config.yaml")
 if not OPTIONS["devcontainer"]:
