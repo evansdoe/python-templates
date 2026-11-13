@@ -43,6 +43,8 @@ section to a member; it would replace the root configuration.
 
 ## Rules
 
+- Every code change follows `.github/skills/dev-workflow/SKILL.md`: plan,
+  test first, gates, one pull request.
 - One concern per branch; keep changes small enough to review in one sitting.
 - No drive-by changes: mention what you noticed, do not fix it unasked.
 - No secrets, credentials or personal data in code, tests, fixtures or docs.

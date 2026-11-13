@@ -544,6 +544,12 @@ def test_agent_files_point_only_to_files_that_exist(cookies):
     assert not missing, f"named but not baked: {missing}"
 
 
+def test_root_agents_md_points_to_the_workflow(cookies):
+    """Tools that read only AGENTS.md (no skill discovery) still find it."""
+    text = (bake(cookies).project_path / "AGENTS.md").read_text()
+    assert f"{WORKFLOW_DIR}/SKILL.md" in text
+
+
 @pytest.mark.parametrize("root_kind", ROOT_KINDS)
 def test_ruff_sorts_a_members_package_as_first_party(cookies, root_kind):
     """A member's tests import its package; ruff must not call it third-party."""
