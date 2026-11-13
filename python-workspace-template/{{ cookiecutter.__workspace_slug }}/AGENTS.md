@@ -26,6 +26,8 @@ uv run poe fmt && uv run poe lint                  # apply formatting and lint f
   questions; its `docs/design/package-map.md` holds the approved sub-packages.
 - Its `tests/test_architecture.py` enforces the package map. When it fails,
   move the code; do not loosen the contract.
+- Before adding a module, class or sub-package, read
+  `.github/skills/python-design/SKILL.md`.
 - Design decisions belong to the project owner. Propose, wait for approval,
   then record the decision in the member's `docs/PLAN.md`.
 

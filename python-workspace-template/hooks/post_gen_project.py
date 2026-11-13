@@ -28,7 +28,22 @@ def drop(*relative_paths: str) -> None:
 if CI == "github":
     drop(".gitlab-ci.yml", ".gitlab")
 elif CI == "gitlab":
-    drop(".github")
+    drop(".github/workflows")  # .github/skills stays: agents read it on any host
+
+
+def link_skills() -> None:
+    """Expose each .github/skills/<name> to Claude Code as .claude/skills/<name>."""
+    claude_skills = ROOT / ".claude" / "skills"
+    claude_skills.mkdir(parents=True, exist_ok=True)
+    for skill in sorted((ROOT / ".github" / "skills").iterdir()):
+        link = claude_skills / skill.name
+        try:
+            link.symlink_to(Path("..", "..", ".github", "skills", skill.name))
+        except OSError:  # e.g. Windows without Developer Mode: copy instead
+            shutil.copytree(skill, link)
+
+
+link_skills()
 
 if not DANGER:
     drop("scripts/danger", ".gitlab/ci/danger.yml")
