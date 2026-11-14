@@ -1099,3 +1099,12 @@ def test_generated_readme_adds_members_from_the_templates_repository(cookies):
 def test_generated_readme_points_to_the_agent_instructions(cookies):
     text = _readme_text(bake(cookies).project_path / "README.md")
     assert "[AGENTS.md](AGENTS.md)" in text
+
+
+def test_contributing_points_to_the_shared_workflow(cookies):
+    """People and agents follow the same workflow, so CONTRIBUTING.md names it."""
+    root = bake(cookies).project_path
+    text = _readme_text(root / "CONTRIBUTING.md")
+    for phrase in ("[AGENTS.md](AGENTS.md)", ".github/skills/dev-workflow/SKILL.md",
+                   ".github/skills/python-design/SKILL.md", "package-map.md"):  # fmt: skip
+        assert phrase in text, phrase

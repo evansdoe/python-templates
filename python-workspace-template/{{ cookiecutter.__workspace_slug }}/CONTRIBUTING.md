@@ -20,6 +20,20 @@ Shared dev tooling (ruff, pytest, the type checker) lives in the root
 `[dependency-groups]`. Member `pyproject.toml` files declare only their own
 runtime dependencies.
 
+## How changes are made
+
+People and coding agents follow the same workflow:
+
+- [AGENTS.md](AGENTS.md) is the short entry point; each member's own
+  `AGENTS.md` adds what is specific to it.
+- `.github/skills/dev-workflow/SKILL.md` describes how a change is made: one
+  concern per branch, planned in the member's `docs/PLAN.md`, tests first, the
+  gates, one pull request.
+- `.github/skills/python-design/SKILL.md` says where code goes. A new module
+  or sub-package changes the member's `docs/design/package-map.md`, which the
+  project owner approves; the member's `tests/test_architecture.py` enforces
+  it.
+
 ## Commits
 
 [Conventional Commits](https://www.conventionalcommits.org/), with the member
