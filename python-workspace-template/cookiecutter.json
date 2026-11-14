@@ -45,6 +45,10 @@
     "no",
     "yes"
   ],
+  "include_architecture_docs": [
+    "no",
+    "yes"
+  ],
   "__workspace_slug": "{{ cookiecutter.workspace_name|lower|replace(' ', '-')|replace('_', '-') }}",
   "__github_url": "https://github.com/{{ cookiecutter.vcs_username }}/{{ cookiecutter.__workspace_slug }}",
   "__gitlab_url": "https://gitlab.com/{{ cookiecutter.vcs_username }}/{{ cookiecutter.__workspace_slug }}",

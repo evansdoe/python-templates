@@ -13,7 +13,7 @@ Both audiences:
 - relative links resolve, use no line anchor (`#L42`) and stay in the
   repository (links in code and human notes are ignored);
 - `inspected_paths` entries are repository-relative and exist;
-- every relative link outside the project's own `docs/architecture/` lies
+- every relative link outside the package's own `docs/architecture/` lies
   under an `inspected_paths` entry;
 - table columns with fixed values hold only the audience's values (see
   COLUMN_VALUES), and every row of the audience's evidence column (`Evidence`
@@ -24,15 +24,17 @@ Executive documents also:
   `Sources` table, and every row there is cited;
 - the executive summary has at most 20 non-empty lines.
 
-It does not check that content is accurate. The usage line must stay last.
+It does not check that content is accurate. <audience> is engineering or
+executive. The usage line must stay last.
 
-usage: python check_architecture_doc.py docs/architecture/<engineering|executive>.md
+usage: python check_architecture_doc.py <package>/docs/architecture/<audience>.md
 """
 
 import os
 import posixpath
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 SKILLS = Path(__file__).resolve().parents[2]
@@ -112,16 +114,42 @@ def section_text(text: str, name: str) -> str | None:
     return match.group(1) if match else None
 
 
+def locate(folder: Path) -> tuple[Path, str]:
+    """Return the repository root and the package path for a document folder.
+
+    A standalone package keeps its documents in docs/architecture/ at its root
+    (package path "."); a uv workspace member keeps them in
+    projects/<name>/docs/architecture/ (package path "projects/<name>").
+    """
+    if folder.parts[-2:] != ("docs", "architecture"):
+        raise CheckError(f"{folder}: not under docs/architecture/")
+    package = folder.parent.parent
+    workspace = package.parent.parent
+    if package.parent.name == "projects" and is_uv_workspace(workspace):
+        return workspace, f"projects/{package.name}"
+    return package, "."
+
+
+def is_uv_workspace(folder: Path) -> bool:
+    """Return whether the folder's pyproject.toml declares a uv workspace."""
+    try:
+        text = (folder / "pyproject.toml").read_text(encoding="utf-8")
+    except OSError:
+        return False
+    try:
+        data = tomllib.loads(text)
+    except tomllib.TOMLDecodeError:
+        return False
+    return "workspace" in data.get("tool", {}).get("uv", {})
+
+
 def check(document: Path) -> list[str]:
     """Return one message per structural issue; empty when it conforms."""
     audience = document.stem
     if document.name not in ("engineering.md", "executive.md"):
         raise CheckError(f"{document}: not named engineering.md or executive.md")
     folder = document.resolve().parent
-    if folder.parts[-2:] != ("docs", "architecture"):
-        raise CheckError(f"{document}: not under docs/architecture/")
-    root = folder.parents[1]
-    project = "."
+    root, project = locate(folder)
     skill = SKILLS / f"document-{audience}-architecture/SKILL.md"
     try:
         text = document.read_text(encoding="utf-8")
@@ -191,7 +219,7 @@ def link_scope_issues(
     """
     prose = re.sub(r"`[^`\n]*`", "", checked_text(text))
     entries = [posixpath.normpath(entry.rstrip("/")) for entry in inspected or []]
-    own_docs = "docs/architecture/"
+    own_docs = Path(os.path.relpath(folder, root)).as_posix() + "/"
     issues = []
     for target in dict.fromkeys(LINK.findall(prose)):
         path, _, fragment = target.partition("#")

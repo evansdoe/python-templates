@@ -15,6 +15,7 @@ import hashlib
 import os
 import re
 import subprocess
+import sys
 import tomllib
 
 import pytest
@@ -37,6 +38,7 @@ DEFAULTS = {
     "include_precommit": "yes",
     "include_devcontainer": "yes",
     "include_danger": "no",
+    "include_architecture_docs": "no",
 }
 
 CI_PLATFORMS = ["github", "gitlab", "both"]
@@ -503,7 +505,7 @@ def test_refactor_agent_has_one_body_for_copilot_and_claude(cookies):
 
 @pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
 def test_baked_workspace_has_no_private_names(cookies, ci_platform):
-    root = bake(cookies, ci_platform=ci_platform, include_danger="yes").project_path
+    root = bake(cookies, ci_platform=ci_platform, include_danger="yes", include_architecture_docs="yes").project_path
     found = []
     for path in root.rglob("*"):
         if not path.is_file() or path.is_symlink():
@@ -705,3 +707,78 @@ def test_integration_danger_lint_and_format(cookies):
 
     fmt = subprocess.run(["npm", "run", "format"], cwd=danger_dir, capture_output=True, text=True, timeout=60)
     assert fmt.returncode == 0, f"format failed:\n{fmt.stdout}\n{fmt.stderr}"
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Architecture-document skills: an opt-in bake option, off by default.
+# Documents live per member, in projects/<name>/docs/architecture/.
+# ──────────────────────────────────────────────────────────────────────────
+ARCH_SKILLS = ["document-executive-architecture", "document-engineering-architecture"]
+CHECKER = ".github/skills/document-engineering-architecture/scripts/check_architecture_doc.py"
+
+
+def run_checker(root, document):
+    return subprocess.run([sys.executable, "-I", CHECKER, str(document)], cwd=root, capture_output=True, text=True)
+
+
+def test_architecture_docs_are_off_by_default(cookies):
+    root = bake(cookies).project_path
+    for skill in ARCH_SKILLS:
+        assert not (root / ".github/skills" / skill).exists(), skill
+        assert not (root / ".claude/skills" / skill).exists(), skill
+    assert "document-engineering-architecture" not in (root / "AGENTS.md").read_text()
+
+
+@pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
+def test_architecture_docs_on_bakes_skills_checker_and_links(cookies, ci_platform):
+    root = bake(cookies, ci_platform=ci_platform, include_architecture_docs="yes").project_path
+    assert (root / CHECKER).is_file()
+    for skill in ARCH_SKILLS:
+        assert split_frontmatter(root / ".github/skills" / skill / "SKILL.md")[0]["name"] == skill
+        assert os.readlink(root / ".claude/skills" / skill) == f"../../.github/skills/{skill}"
+
+
+def test_root_agents_md_tells_agents_to_document_the_changed_member(cookies):
+    text = (bake(cookies, include_architecture_docs="yes").project_path / "AGENTS.md").read_text()
+    assert ".github/skills/document-executive-architecture/SKILL.md" in text
+    assert ".github/skills/document-engineering-architecture/SKILL.md" in text
+    assert "projects/<member>/docs/architecture/" in text
+
+
+def test_architecture_checker_accepts_a_members_document(cookies):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    doc = root / "projects/demo/docs/architecture/executive.md"
+    doc.parent.mkdir(parents=True)
+    doc.write_text("# Demo executive architecture\n")
+    proc = run_checker(root, doc)
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "FAIL provenance: block missing" in proc.stdout
+
+
+def test_architecture_checker_rejects_a_document_outside_docs_architecture(cookies):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    doc = root / "projects/demo/engineering.md"
+    doc.parent.mkdir(parents=True)
+    doc.write_text("# Demo\n")
+    proc = run_checker(root, doc)
+    assert proc.returncode == 2
+    assert "not under docs/architecture/" in proc.stderr
+
+
+def test_architecture_checker_passes_the_workspace_lint(cookies):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    proc = subprocess.run(
+        ["uvx", "ruff", "check", "--output-format", "concise", CHECKER], cwd=root, capture_output=True, text=True
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_architecture_skills_have_no_ticket_ids(cookies):
+    """The full scan above covers private names and paths; ticket IDs are checked here."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    found = []
+    for skill in ARCH_SKILLS:
+        for path in (root / ".github/skills" / skill).rglob("*"):
+            if path.is_file():
+                found += [f"{path.relative_to(root)}: {m}" for m in TICKET_ID.findall(path.read_text())]
+    assert not found, "\n".join(found)

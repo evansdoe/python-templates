@@ -12,6 +12,7 @@ Test tiers:
 """
 
 import hashlib
+import importlib.util
 import os
 import re
 import subprocess
@@ -1001,3 +1002,45 @@ def test_architecture_pages_are_kept_out_of_the_docs_site(cookies):
     assert "exclude_docs" in (on / "mkdocs.yml").read_text()
     off = bake(cookies).project_path
     assert "exclude_docs" not in (off / "mkdocs.yml").read_text()
+
+
+def load_checker(root):
+    spec = importlib.util.spec_from_file_location("check_architecture_doc", root / CHECKER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_architecture_checker_locates_the_package_for_both_layouts(cookies, tmp_path):
+    """One checker serves a standalone package and a workspace member."""
+    checker = load_checker(bake(cookies, include_architecture_docs="yes").project_path)
+    package = tmp_path / "pkg"
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    (workspace / "pyproject.toml").write_text('[tool.uv.workspace]\nmembers = ["projects/*"]\n')
+    kept_in_a_projects_folder = tmp_path / "home/projects/pkg"
+    assert checker.locate(package / "docs/architecture") == (package, ".")
+    assert checker.locate(workspace / "projects/demo/docs/architecture") == (workspace, "projects/demo")
+    assert checker.locate(kept_in_a_projects_folder / "docs/architecture") == (kept_in_a_projects_folder, ".")
+    with pytest.raises(checker.CheckError, match="not under docs/architecture/"):
+        checker.locate(tmp_path / "notes")
+
+
+def test_architecture_skills_name_the_documents_for_a_package_and_a_member(cookies):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    for skill in ARCH_SKILLS:
+        text = (root / ".github/skills" / skill / "SKILL.md").read_text()
+        assert "projects/<name>" in text, skill
+        assert "`<package>/docs/architecture/" in text, skill
+
+
+def test_architecture_skills_are_the_same_as_in_the_workspace_template(cookies):
+    """One text per architecture skill, two templates: a change must reach both."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    workspace = WORKSPACE_TEMPLATE / "{{ cookiecutter.__workspace_slug }}"
+    for skill in ARCH_SKILLS:
+        for path in sorted((root / ".github/skills" / skill).rglob("*")):
+            if path.is_file():
+                rel = path.relative_to(root)
+                assert (workspace / rel).is_file(), f"missing in workspace template: {rel}"
+                assert path.read_text() == (workspace / rel).read_text(), rel

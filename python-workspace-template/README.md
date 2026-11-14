@@ -99,7 +99,16 @@ with *"is included as a workspace member, but is missing an entry in
 `license`, `python_version`, `min_python_version`, `uv_version` (`latest` or a
 pin, e.g. `0.12.5`), `ci_platform` (github/gitlab/both), `type_checker`
 (mypy/ty/none), `include_docs`, `include_precommit`, `include_devcontainer`,
-`include_danger`.
+`include_danger`, `include_architecture_docs`.
+
+## Architecture documents (`include_architecture_docs`)
+
+Off by default. When on, the workspace gets the
+`document-engineering-architecture` and `document-executive-architecture`
+skills and their checker. Each member keeps its two documents in
+`projects/<member>/docs/architecture/`; the root `AGENTS.md` tells agents to
+run both skills for a member after an architecture-affecting change. These
+pages stay out of the root docs site, which builds only from `docs/`.
 
 ## Docs (`include_docs`)
 

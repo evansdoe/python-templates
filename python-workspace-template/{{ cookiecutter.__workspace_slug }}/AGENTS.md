@@ -28,7 +28,12 @@ uv run poe fmt && uv run poe lint                  # apply formatting and lint f
   move the code; do not loosen the contract.
 - Before adding a module, class or sub-package, read
   `.github/skills/python-design/SKILL.md`.
-- Design decisions belong to the project owner. Propose, wait for approval,
+{% if cookiecutter.include_architecture_docs == "yes" %}- After an architecture-affecting change in a member, run
+  `.github/skills/document-executive-architecture/SKILL.md` and
+  `.github/skills/document-engineering-architecture/SKILL.md` for that member
+  before the pull request is ready. They keep
+  `projects/<member>/docs/architecture/` in sync.
+{% endif %}- Design decisions belong to the project owner. Propose, wait for approval,
   then record the decision in the member's `docs/PLAN.md`.
 
 ## Adding a member

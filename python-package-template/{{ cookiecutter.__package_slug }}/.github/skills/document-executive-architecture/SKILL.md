@@ -2,7 +2,7 @@
 name: document-executive-architecture
 description: >
   Generate and synchronize an evidence-backed executive architecture document
-  for this package. Use after an architecture-affecting change, before a merge request is ready, or when
+  for one package: a standalone package or a workspace member. Use after an architecture-affecting change, before a merge request is ready, or when
   product managers, project managers or directors need the project's
   capabilities, status, risks, dependencies, roadmap and decisions with
   Mermaid visuals.
@@ -10,7 +10,9 @@ description: >
 
 # Document executive architecture
 
-Create or synchronize `docs/architecture/executive.md` for this package. Its architecture-affecting changes must keep this document in sync. It is the executive view of the same package that `document-engineering-architecture` describes for engineers.
+Create or synchronize `<package>/docs/architecture/executive.md` for one
+package. `<package>` is `.` for a standalone package and `projects/<name>` for a
+member of a uv workspace. Paths below are relative to the repository root. Its architecture-affecting changes must keep this document in sync. It is the executive view of the same package that `document-engineering-architecture` describes for engineers.
 
 The primary readers are product managers, project managers and directors: they
 use the document to learn what the project enables, where it stands, what
@@ -28,7 +30,7 @@ or opens an MR, and it never creates or edits the project status file.
 
 Identify:
 
-1. the package root;
+1. the package (`<package>`);
 2. whether this is an initial generation (no document yet) or a
    synchronization;
 3. for synchronization, a revision to compare from, only when the user gives
@@ -40,7 +42,7 @@ Identify:
 When both architecture skills run for one change, run
 `document-engineering-architecture` first.
 
-If `docs/architecture/engineering.md` exists with `status: current`
+If `<package>/docs/architecture/engineering.md` exists with `status: current`
 and the `source_revision` you are documenting, use it as your map: read its
 provenance block, then only the sections and table rows you need (search it,
 don't read it whole). It is a peer document, not evidence. Verify each claim
@@ -62,7 +64,7 @@ change inside an exclusion is reported, not documented.
 ## Project status file
 
 Ownership, milestones, targets and cost rarely live in code. They come from
-`docs/project-status.md`, which the project owner maintains from
+`<package>/docs/project-status.md`, which the project owner maintains from
 `assets/project-status.template.md`. It is the only source for these facts:
 
 - present each fact as stated, not verified: "Target date 2026-12-15, stated
@@ -137,7 +139,7 @@ command from the repository root.
    (`git merge-base --is-ancestor`). When it is not (for example the branch
    was squashed after the document was written), use the parent of the last
    commit that changed the document's `source_revision` line:
-   `git log -1 --format=%H -G'^source_revision:' -- docs/architecture/executive.md`,
+   `git log -1 --format=%H -G'^source_revision:' -- <package>/docs/architecture/executive.md`,
    then `<that commit>^`. Documentation is committed together with the code it
    describes, so that commit survives squashing; taking its parent reports
    too much rather than too little, and step 3 dismisses changes the document
@@ -146,8 +148,8 @@ command from the repository root.
    regeneration against the current revision, recording `regenerated` as the
    only impact category.
 2. **Triage from the diff.** Run
-   `git diff --stat <baseline> -- . ':(exclude)docs/architecture'`
-   and `git ls-files --others --exclude-standard -- . ':(exclude)docs/architecture'`,
+   `git diff --stat <baseline> -- <package> ':(exclude)<package>/docs/architecture'`
+   and `git ls-files --others --exclude-standard -- <package> ':(exclude)<package>/docs/architecture'`,
     The first compares against the working tree, so uncommitted
    changes count, including the project status file; the second lists new
    files git does not track yet. If both list nothing, the run is a no-op
@@ -225,7 +227,7 @@ Place this directly below the title and keep it machine-readable:
 <!-- ARCHITECTURE-DOC
 schema: 1
 audience: executive
-project: <repository-relative project path>
+project: <package>
 status: current|stale
 source_revision: <commit>
 base_revision: <baseline commit, or none>
@@ -247,7 +249,7 @@ generation or a full regeneration without a baseline, set `base_revision` to
 `none`. For an initial generation, record `initial` as the only impact
 category. Write `generated_at` as `YYYY-MM-DDTHH:MM:SSZ`. `inspected_paths`
 lists every repository path a fact rests on; every path the document links
-must lie under an entry, except the peer document in `docs/architecture/`.
+must lie under an entry, except the peer document in `<package>/docs/architecture/`.
 Whenever you change the document after writing its provenance, refresh
 `generated_at` and `inspected_paths` in the same edit.
 
@@ -330,7 +332,7 @@ repository root:
 
 ```bash
 uv run python .github/skills/document-engineering-architecture/scripts/check_architecture_doc.py \
-  docs/architecture/executive.md
+  <package>/docs/architecture/executive.md
 ```
 
 Exit 0 prints `no issues`; exit 1 prints one `FAIL` line per structural
@@ -350,7 +352,7 @@ Before finishing:
    perform a structural check and report that rendered validation was not run;
 5. verify documented commands, configuration names, and project connections
    against implementation, and each `done` step against git history;
-6. compare with `docs/architecture/engineering.md` when it exists:
+6. compare with `<package>/docs/architecture/engineering.md` when it exists:
    every capability, component, control and dependency that appears in both
    must have the same status. Compare the two documents' status columns and
    diagram classes by searching them, not by reading both in full. Where they differ, check the code. If this
