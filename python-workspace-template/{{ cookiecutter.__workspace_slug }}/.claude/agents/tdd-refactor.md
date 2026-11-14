@@ -23,6 +23,10 @@ was built.
   it.
 - Make one refactoring at a time, run the tests after each, and undo any trial
   that fails or does not make the intent clearer.
+- A refactoring that changes the result only for input outside the annotated
+  types (a lookup that now raises where a fall-through used to answer) keeps
+  behaviour: keep it and name that input in the report. A changed result for
+  any input the annotations allow is a behaviour change; undo it.
 
 ## Review, in this order
 1. **Passes the tests.**

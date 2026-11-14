@@ -1041,3 +1041,12 @@ def test_pace_rule_adds_a_stub_so_the_import_contract_can_pass(cookies):
     text = _collapsed(root / ".github/skills/dev-workflow/references/pace.md")
     assert "empty module with its docstring" in text
     assert "Proposed, not approved" in text
+
+
+def test_refactor_guidance_separates_invalid_input_from_behaviour(cookies):
+    """A lookup that now raises for an off-type value is not a behaviour change, but it is reported."""
+    root = bake(cookies).project_path
+    phrase = "only for input outside the annotated types"
+    assert phrase in _skill_text(root, "dev-workflow")
+    for agent in (AGENT_COPILOT, AGENT_CLAUDE):
+        assert phrase in _collapsed(root / agent), agent

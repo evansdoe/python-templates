@@ -122,6 +122,11 @@ dependency changes do not need it, but the existing tests must stay green.
    refactoring at a time, predicted and run. Undo a trial that does not make
    the intent clearer. If nothing improves, say so; do not report a
    refactoring the diff does not show. Section 2b says where this step runs.
+   A refactoring that changes the result only for input outside the
+   annotated types (a lookup that now raises where a fall-through used to
+   answer) keeps behaviour: keep it and name that input in the checkpoint.
+   A changed result for any input the annotations allow is a behaviour
+   change; undo it.
 5. **Close.** Predict and run the package's full test suite, then make the
    cycle's WIP commit (section 4).
 
