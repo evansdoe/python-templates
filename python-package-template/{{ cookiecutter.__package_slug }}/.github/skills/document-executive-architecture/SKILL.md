@@ -2,7 +2,7 @@
 name: document-executive-architecture
 description: >
   Generate and synchronize an evidence-backed executive architecture document
-  for one package: a standalone package or a workspace member. Use after an architecture-affecting change, before a merge request is ready, or when
+  for one package: a standalone package or a workspace member. Use after an architecture-affecting change, before the pull request is ready, or when
   product managers, project managers or directors need the project's
   capabilities, status, risks, dependencies, roadmap and decisions with
   Mermaid visuals.
@@ -22,7 +22,7 @@ implementation terminology. Do not hide material operational, privacy,
 security, cost, or delivery risk behind simplified language.
 
 This skill changes and validates documentation only. It never commits, pushes,
-or opens an MR, and it never creates or edits the project status file.
+or opens a pull request, and it never creates or edits the project status file.
 
 
 
@@ -194,7 +194,7 @@ command from the repository root.
    Validation.
 
 Run synchronization after each completed architecture-affecting subtask and
-again before MR readiness. Documentation changes belong on the implementation
+again before the pull request is ready. Documentation changes belong on the implementation
 branch and in that subtask's final squashed commit.
 
 ## Required document structure
@@ -244,7 +244,8 @@ The document's architecture items may individually be current, planned,
 deprecated, or unknown. The provenance `status` describes whether the document
 matches the recorded source revision.
 
-`source_revision` is the `HEAD` commit the run documented. For an initial
+`source_revision` is the `HEAD` commit the run documented. It is the commit that holds the code the document describes; a document
+cannot cite its own commit, so the documentation commit follows it. For an initial
 generation or a full regeneration without a baseline, set `base_revision` to
 `none`. For an initial generation, record `initial` as the only impact
 category. Write `generated_at` as `YYYY-MM-DDTHH:MM:SSZ`. `inspected_paths`
@@ -327,8 +328,8 @@ project status file, not here.
 
 ## Validation
 
-First run the structural checker (shared with the engineering skill) from the
-repository root:
+First run the structural checker from the repository root. This skill has no
+script of its own; it uses the engineering skill's checker:
 
 ```bash
 uv run python .github/skills/document-engineering-architecture/scripts/check_architecture_doc.py \

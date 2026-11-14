@@ -1039,3 +1039,38 @@ def test_architecture_skills_are_the_same_as_in_the_workspace_template(cookies):
                 rel = path.relative_to(root)
                 assert (workspace / rel).is_file(), f"missing in workspace template: {rel}"
                 assert path.read_text() == (workspace / rel).read_text(), rel
+
+
+def _skill_text(root, skill):
+    """Return a skill's SKILL.md with whitespace collapsed, so wrapped lines match."""
+    return " ".join((root / ".github/skills" / skill / "SKILL.md").read_text().split())
+
+
+def test_skills_do_not_assume_gitlab(cookies):
+    """The platform is a choice; the skills must not say pull request means GitLab."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    assert "merge request on GitLab" not in _skill_text(root, "dev-workflow")
+    for skill in ARCH_SKILLS:
+        assert "merge request" not in _skill_text(root, skill)
+
+
+def test_dev_workflow_says_red_is_never_committed(cookies):
+    """AGENTS.md demands green gates per commit, so a failing Red test cannot be one."""
+    root = bake(cookies).project_path
+    assert "A failing Red test is never committed" in _skill_text(root, "dev-workflow")
+
+
+def test_architecture_skills_explain_the_documentation_commit(cookies):
+    """A document cannot cite its own commit, so source_revision is the code commit."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    for skill in ARCH_SKILLS:
+        text = _skill_text(root, skill)
+        assert "the commit that holds the code the document describes" in text, skill
+        assert "documentation commit follows it" in text, skill
+
+
+def test_executive_skill_names_the_shared_checker(cookies):
+    """The executive skill has no script folder, which is easy to miss."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    text = _skill_text(root, "document-executive-architecture")
+    assert "has no script of its own" in text

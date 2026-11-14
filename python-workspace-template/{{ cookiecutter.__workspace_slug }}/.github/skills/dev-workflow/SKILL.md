@@ -13,7 +13,7 @@ description: >
 # Development workflow
 
 Follow this workflow for every implementation task in this repository unless
-the user says otherwise. "Pull request" means a merge request on GitLab.
+the user says otherwise. "Pull request" means whatever the project's CI platform calls it.
 "Package" means the package you are changing: the project itself, or one
 member of a uv workspace. Its test command is in the nearest `AGENTS.md`.
 Where the code goes and what shape it takes is the `python-design` skill
@@ -186,6 +186,8 @@ a confirmed pace, use `per-cycle`.
 ## 4. Commits per subtask, then squash
 - One local WIP commit per completed cycle (after Refactor), plus one for the
   test list. Every WIP commit passes the gate. WIP commits are not pushed.
+- A failing Red test is never committed. Commit the test list with its tests
+  skipped, and commit each test with the Green change that makes it pass.
 - A WIP subject is `wip: <what the cycle did>`. Only the squashed commit
   follows the template below.
 

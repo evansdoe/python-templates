@@ -45,7 +45,8 @@ default-groups = ["dev"]
 # It is not itself a distributable package; each member under projects/ is.
 #
 # Members are wired in by the glob below, not by a dependency edge, so adding a
-# project needs no edit here. `uv sync` installs every member editable.
+# project needs no edit here, unless one member depends on another (see AGENTS.md).
+# `uv sync` installs every member editable.
 
 [tool.uv.workspace]
 members = ["projects/*"]
