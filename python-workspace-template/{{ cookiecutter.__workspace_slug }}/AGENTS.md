@@ -46,6 +46,13 @@ uv sync --all-packages --all-groups
 The `members = ["projects/*"]` glob picks it up. Do not add a `[tool.ruff]`
 section to a member; it would replace the root configuration.
 
+## Depending on another member
+
+Declare the edge in the importing member: `dependencies = ["ledger"]` plus
+`[tool.uv.sources]` with `ledger = { workspace = true }`, then `uv lock`.
+Import the package root only. import-linter cannot forbid submodules of an
+external package, so record that rule in the member's `docs/PLAN.md`.
+
 ## Rules
 
 - Every code change follows `.github/skills/dev-workflow/SKILL.md`: plan,

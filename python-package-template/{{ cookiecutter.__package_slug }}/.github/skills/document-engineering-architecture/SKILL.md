@@ -2,7 +2,7 @@
 name: document-engineering-architecture
 description: >
   Generate and synchronize an evidence-backed engineering architecture
-  document for one package: a standalone package or a workspace member. Use after an architecture-affecting change, before a merge request is ready, or when
+  document for one package: a standalone package or a workspace member. Use after an architecture-affecting change, before the pull request is ready, or when
   engineers need current components, interfaces, contracts, runtime flows,
   configuration, security, failure modes, testing, deployment, observability,
   and extension points with Mermaid visuals.
@@ -19,7 +19,7 @@ or integrate the implementation. Describe architecture and important internal
 modules without turning the document into a generated API or file listing.
 
 This skill changes and validates documentation only. It never commits, pushes,
-or opens an MR.
+or opens a pull request.
 
 One reference file holds detail most runs don't need:
 
@@ -217,7 +217,7 @@ command from the repository root.
    validation fails, follow the failure rule at the end of Validation.
 
 Run synchronization after each completed architecture-affecting subtask and
-again before MR readiness. Documentation changes belong on the implementation
+again before the pull request is ready. Documentation changes belong on the implementation
 branch and in that subtask's final squashed commit.
 
 ## Required document structure
@@ -273,7 +273,8 @@ impact_categories:
 -->
 ```
 
-`source_revision` is the `HEAD` commit the run documented. For an initial
+`source_revision` is the `HEAD` commit the run documented. It is the commit that holds the code the document describes; a document
+cannot cite its own commit, so the documentation commit follows it. For an initial
 generation or a full regeneration without a baseline, set `base_revision` to
 `none`. For an initial generation, record `initial` as the only impact
 category.

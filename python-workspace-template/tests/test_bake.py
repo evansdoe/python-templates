@@ -872,3 +872,49 @@ def test_architecture_skills_have_no_ticket_ids(cookies):
             if path.is_file():
                 found += [f"{path.relative_to(root)}: {m}" for m in TICKET_ID.findall(path.read_text())]
     assert not found, "\n".join(found)
+
+
+def _skill_text(root, skill):
+    """Return a skill's SKILL.md with whitespace collapsed, so wrapped lines match."""
+    return " ".join((root / ".github/skills" / skill / "SKILL.md").read_text().split())
+
+
+def test_skills_do_not_assume_gitlab(cookies):
+    """The platform is a choice; the skills must not say pull request means GitLab."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    assert "merge request on GitLab" not in _skill_text(root, "dev-workflow")
+    for skill in ARCH_SKILLS:
+        assert "merge request" not in _skill_text(root, skill)
+
+
+def test_dev_workflow_says_red_is_never_committed(cookies):
+    """AGENTS.md demands green gates per commit, so a failing Red test cannot be one."""
+    root = bake(cookies).project_path
+    assert "A failing Red test is never committed" in _skill_text(root, "dev-workflow")
+
+
+def test_architecture_skills_explain_the_documentation_commit(cookies):
+    """A document cannot cite its own commit, so source_revision is the code commit."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    for skill in ARCH_SKILLS:
+        text = _skill_text(root, skill)
+        assert "the commit that holds the code the document describes" in text, skill
+        assert "documentation commit follows it" in text, skill
+
+
+def test_executive_skill_names_the_shared_checker(cookies):
+    """The executive skill has no script folder, which is easy to miss."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    text = _skill_text(root, "document-executive-architecture")
+    assert "has no script of its own" in text
+
+
+def test_agents_md_explains_a_dependency_between_members(cookies):
+    """Members are glob-wired, so a member needing another must declare the edge."""
+    root = bake(cookies).project_path
+    agents = " ".join((root / "AGENTS.md").read_text().split())
+    assert "[tool.uv.sources]" in agents
+    assert "{ workspace = true }" in agents
+    assert "import-linter" in agents and "external package" in agents
+    pyproject = " ".join((root / "pyproject.toml").read_text().split())
+    assert "unless one member depends on another" in pyproject
