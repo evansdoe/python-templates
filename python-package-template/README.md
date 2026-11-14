@@ -12,9 +12,10 @@ uv tool install cruft
 cruft create git@github.com:evansdoe/python-templates.git --directory python-package-template
 ```
 
-Use the **SSH** URL if the template repo is private: GitHub has not accepted
-passwords for git operations since 2021, so an HTTPS clone will fail unless you
-have a token configured (`gh auth login && gh auth setup-git`).
+The repository is public, so the HTTPS URL
+(`https://github.com/evansdoe/python-templates.git`) works as well as SSH. For
+a private copy, use SSH or configure a token (`gh auth login && gh auth
+setup-git`): GitHub has not accepted passwords for git operations since 2021.
 
 ## Options
 
