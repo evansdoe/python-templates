@@ -18,8 +18,10 @@ Test tiers:
   - test_integration_*: actually runs uv sync inside a real workspace (slow, marked)
 """
 
+import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tomllib
@@ -494,3 +496,57 @@ def test_template_readme_describes_the_files_each_member_gets(cookies):
         assert (root / path).exists(), path
         assert path in text, path
     assert "skills live in the workspace root" in text
+
+
+# Same list as the package and workspace templates: the first 16 hex digits of
+# the SHA-256 of each private name, so the names themselves never appear here.
+PRIVATE_NAME_HASHES = {
+    "990bb270a89d9423", "54a3c6aaf3e5e627", "5990287170f076d9", "f01d6a140bd94f2b",
+    "27d5a2e73131fdf9", "e48d6e93afa904e9", "d4d9592a499bbf85", "ee3caf2caa313b81",
+    "4dcf4c826d72fa20", "a0b40b11e98e15f1", "b1968b190dd92b35",
+}  # fmt: skip
+ABSOLUTE_HOME_PATH = re.compile(r"(?<![\w.])/(root|home/\w+|Users/\w+)/")
+
+
+def private_findings(root):
+    """Return every private name or absolute home path found under root."""
+    found = []
+    for path in root.rglob("*"):
+        if not path.is_file() or path.is_symlink():
+            continue
+        try:
+            text = path.read_text()
+        except UnicodeDecodeError:
+            continue
+        for token in set(re.findall(r"[a-z0-9][a-z0-9_-]*", text.lower())):
+            if hashlib.sha256(token.encode()).hexdigest()[:16] in PRIVATE_NAME_HASHES:
+                found.append(f"{path.relative_to(root)}: private name")
+        found += [f"{path.relative_to(root)}: path {m.group(0)}" for m in ABSOLUTE_HOME_PATH.finditer(text)]
+    return found
+
+
+@pytest.mark.parametrize("project_kind", PROJECT_KINDS)
+def test_baked_member_has_no_private_names(cookies, project_kind):
+    root = bake(
+        cookies,
+        project_kind=project_kind,
+        custom_gitlab_pipeline="yes",
+        ruff_override="yes",
+        member_dependencies="geo-core",
+    ).project_path
+    found = private_findings(root)
+    assert not found, "\n".join(found)
+
+
+TICKET_ID = re.compile(r"(?<![\w.])[A-Z]{2,10}-\d{2,6}(?![\w.])")
+MEMBER_AGENT_FILES = ["AGENTS.md", "CLAUDE.md", "docs/PLAN.md", "docs/design/package-map.md"]
+
+
+def ticket_ids(root):
+    """Return every ticket ID in the member's agent files."""
+    return [match for name in MEMBER_AGENT_FILES for match in TICKET_ID.findall((root / name).read_text())]
+
+
+@pytest.mark.parametrize("project_kind", PROJECT_KINDS)
+def test_member_agent_files_have_no_ticket_ids(cookies, project_kind):
+    assert ticket_ids(bake(cookies, project_kind=project_kind).project_path) == []
