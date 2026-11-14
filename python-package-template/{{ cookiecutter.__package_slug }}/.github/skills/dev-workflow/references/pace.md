@@ -36,6 +36,11 @@ work, the closer the stops:
 - A design change that needs the owner's approval is proposed, not made:
   record the proposal in the report and continue only with work that does not
   depend on it.
+- When the work cannot go on without it (a new module the import contract
+  must list), make the change provisionally: add the package-map row and the
+  contract entry in one commit, write "Proposed, not approved: <names>" under
+  Open in `docs/PLAN.md`, and list it first in the report. The owner approves
+  or reverts it before anything is pushed.
 - Do not squash, push, force-push, or open or update a pull request.
 - Finish with a report: the plan and assumptions, the checkpoints in commit
   order, every prediction mismatch, every deviation from the step plan with
