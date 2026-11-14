@@ -46,6 +46,10 @@
     "no",
     "yes"
   ],
+  "include_architecture_docs": [
+    "no",
+    "yes"
+  ],
   "publish_to_pypi": [
     "no",
     "yes"

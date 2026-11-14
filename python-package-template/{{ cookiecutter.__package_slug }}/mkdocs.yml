@@ -1,7 +1,9 @@
 site_name: {{ cookiecutter.package_name }}
 site_description: {{ cookiecutter.package_description }}
 repo_url: {{ cookiecutter.__repo_url }}
-
+{% if cookiecutter.include_architecture_docs == "yes" %}exclude_docs: |
+  architecture/
+{% endif %}
 theme:
   name: material
   features:
