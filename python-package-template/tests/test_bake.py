@@ -1199,3 +1199,12 @@ def test_repository_readme_describes_the_agent_tooling():
     text = _readme_text(TEMPLATE_README.parents[1] / "README.md")
     for phrase in ("AGENTS.md", "python-design", "dev-workflow", "include_architecture_docs"):
         assert phrase in text, phrase
+
+
+def test_contributing_points_to_the_shared_workflow(cookies):
+    """People and agents follow the same workflow, so CONTRIBUTING.md names it."""
+    root = bake(cookies).project_path
+    text = _readme_text(root / "CONTRIBUTING.md")
+    for phrase in ("[AGENTS.md](AGENTS.md)", ".github/skills/dev-workflow/SKILL.md",
+                   ".github/skills/python-design/SKILL.md", "package-map.md"):  # fmt: skip
+        assert phrase in text, phrase

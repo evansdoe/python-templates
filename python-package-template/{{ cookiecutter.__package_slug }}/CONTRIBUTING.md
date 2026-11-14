@@ -22,6 +22,19 @@ uv run pre-commit install
 | Coverage | `uv run poe cov` |
 | Everything | `uv run poe all` |
 
+## How changes are made
+
+People and coding agents follow the same workflow:
+
+- [AGENTS.md](AGENTS.md) is the short entry point: where things are, the
+  commands, the rules.
+- `.github/skills/dev-workflow/SKILL.md` describes how a change is made: one
+  concern per branch, planned in `docs/PLAN.md`, tests first, the gates above,
+  one pull request.
+- `.github/skills/python-design/SKILL.md` says where code goes. A new module
+  or sub-package changes `docs/design/package-map.md`, which the project owner
+  approves; `tests/test_architecture.py` enforces it.
+
 ## Commits
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/):
