@@ -262,14 +262,20 @@ def test_danger_scripts_use_biome(cookies):
     assert "pnpm format" in github_ci_yml
 
 
-def test_types_job_installs_test_dependencies(cookies):
-    """mypy checks tests/ as well as src/, so the type-check job needs the
-    test group installed. Without it, the first CI run of any project whose
+@pytest.mark.parametrize("type_checker", ["mypy", "ty"])
+@pytest.mark.parametrize("ci_platform", ["github", "gitlab"])
+def test_types_job_installs_test_dependencies(cookies, ci_platform, type_checker):
+    """The type checker reads tests/ as well as src/, so the type-check job needs
+    the test group installed. Without it, the first CI run of any project whose
     tests import pytest fails with import-not-found. The generated smoke
     test imports only the package itself, which is why this went unseen."""
-    result = bake(cookies, ci_platform="github", type_checker="mypy")
-    ci = yaml.safe_load((result.project_path / ".github" / "workflows" / "ci.yml").read_text())
-    syncs = [step["run"] for step in ci["jobs"]["types"]["steps"] if "run" in step]
+    root = bake(cookies, ci_platform=ci_platform, type_checker=type_checker).project_path
+    if ci_platform == "github":
+        ci = yaml.safe_load((root / ".github" / "workflows" / "ci.yml").read_text())
+        steps = [step["run"] for step in ci["jobs"]["types"]["steps"] if "run" in step]
+    else:
+        steps = yaml.safe_load((root / ".gitlab" / "ci" / "lint.yml").read_text())["types"]["script"]
+    syncs = [s for s in steps if s.startswith("uv sync")]
     assert any("--group lint" in s and "--group test" in s for s in syncs), syncs
 
 

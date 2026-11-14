@@ -14,7 +14,8 @@ ruff:
 types:
   stage: lint
   script:
-    - uv sync --all-packages --no-default-groups --group lint
+    # The type checker reads tests/ too, so the tests' dependencies must be present.
+    - uv sync --all-packages --no-default-groups --group lint --group test
 {%- if cookiecutter.type_checker == "mypy" %}
     - uv run --no-sync python scripts/ci/run_mypy.py
 {%- else %}
