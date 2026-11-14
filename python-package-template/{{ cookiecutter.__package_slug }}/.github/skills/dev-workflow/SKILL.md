@@ -188,6 +188,9 @@ a confirmed pace, use `per-cycle`.
   test list. Every WIP commit passes the gate. WIP commits are not pushed.
 - A failing Red test is never committed. Commit the test list with its tests
   skipped, and commit each test with the Green change that makes it pass.
+  If a stub adds a required field, give it a temporary default so the
+  test-list commit stays green, and remove the default at the first Green.
+  A subtask with only one example may skip the separate test-list commit.
 - A WIP subject is `wip: <what the cycle did>`. Only the squashed commit
   follows the template below.
 
@@ -234,13 +237,14 @@ fix(csv-tools): report the line number of a malformed row
 ```
 
 ## 5. Gates (from the repository root)
-- **Every WIP commit:** `uv run poe fmt`, then `uv run poe check`, then the
-  test command for every changed package (the nearest `AGENTS.md` names it).
+- **Every WIP commit:** `uv run poe fmt` and `uv run poe lint`, then
+  `uv run poe check`, then the test command for every changed package (the
+  nearest `AGENTS.md` names it).
   Skipped tests from the test list are allowed.
 - **Full gate** (before and after the squash, and before every push): the
   same, plus `uv run poe test` for the whole repository.
-- `uv run poe fmt` rewrites files; stage its result before committing, or CI's
-  format check fails on the commit.
+- `uv run poe fmt` and `uv run poe lint` rewrite files; stage their result
+  before committing, or CI's checks fail on the commit.
 - The CI configuration is the authority. If it runs a check this list does not
   name (coverage thresholds, extra tools), run it too and report the
   difference.

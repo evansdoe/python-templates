@@ -386,9 +386,10 @@ def test_core_files_always_present(cookies):
 AGENTS_MD_MAX_LINES = 60
 
 
+@pytest.mark.parametrize("include_architecture_docs", ["no", "yes"])
 @pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
-def test_root_agent_files_are_baked(cookies, ci_platform):
-    result = bake(cookies, ci_platform=ci_platform)
+def test_root_agent_files_are_baked(cookies, ci_platform, include_architecture_docs):
+    result = bake(cookies, ci_platform=ci_platform, include_architecture_docs=include_architecture_docs)
     agents = result.project_path / "AGENTS.md"
     assert agents.exists()
     assert len(agents.read_text().splitlines()) <= AGENTS_MD_MAX_LINES
@@ -968,3 +969,51 @@ def test_poe_test_runs_a_members_tests(cookies):
     proc = subprocess.run(["uv", "run", "poe", "test"], cwd=root, capture_output=True, text=True, timeout=300)
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "passed" in proc.stdout
+
+
+def _collapsed(path):
+    return " ".join(path.read_text().split())
+
+
+def test_architecture_skills_never_say_source_revision_is_head(cookies):
+    """Step 7 must agree with the provenance section: the code commit, not HEAD."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    for skill in ARCH_SKILLS:
+        assert "`source_revision` is `HEAD`" not in _skill_text(root, skill), skill
+
+
+def test_architecture_skills_triage_step_reads_cleanly(cookies):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    for skill in ARCH_SKILLS:
+        path = root / ".github/skills" / skill / "SKILL.md"
+        assert "`, The first" not in _collapsed(path), skill
+        assert not any(line.startswith("    The first") for line in path.read_text().splitlines()), skill
+
+
+def test_architecture_skills_check_for_new_dependents(cookies):
+    """A diff of the package alone misses another member starting to import it."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    for skill in ARCH_SKILLS:
+        assert "starts or stops importing this package" in _skill_text(root, skill), skill
+
+
+def test_agents_md_routes_architecture_edits_through_the_skills(cookies):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    assert "only through these skills" in _collapsed(root / "AGENTS.md")
+
+
+def test_agents_md_points_to_the_unattended_rule(cookies):
+    """'Wait for approval' needs the exception for when nobody can approve."""
+    root = bake(cookies).project_path
+    assert ".github/skills/dev-workflow/references/pace.md" in _collapsed(root / "AGENTS.md")
+
+
+def test_dev_workflow_gate_applies_lint_fixes(cookies):
+    root = bake(cookies).project_path
+    assert "`uv run poe fmt` and `uv run poe lint`, then `uv run poe check`" in _skill_text(root, "dev-workflow")
+
+
+def test_dev_workflow_covers_stub_fields_and_single_examples(cookies):
+    text = _skill_text(bake(cookies).project_path, "dev-workflow")
+    assert "temporary default" in text
+    assert "only one example" in text

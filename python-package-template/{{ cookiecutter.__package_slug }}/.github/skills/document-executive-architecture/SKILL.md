@@ -149,12 +149,14 @@ command from the repository root.
    only impact category.
 2. **Triage from the diff.** Run
    `git diff --stat <baseline> -- <package> ':(exclude)<package>/docs/architecture'`
-   and `git ls-files --others --exclude-standard -- <package> ':(exclude)<package>/docs/architecture'`,
-    The first compares against the working tree, so uncommitted
+   and `git ls-files --others --exclude-standard -- <package> ':(exclude)<package>/docs/architecture'`.
+   The first compares against the working tree, so uncommitted
    changes count, including the project status file; the second lists new
-   files git does not track yet. If both list nothing, the run is a no-op
+   files git does not track yet. If both list nothing and no dependent changed, the run is a no-op
    (step 4). Otherwise read the diff of the listed files, not the whole
-   project, and classify it.
+   project, and classify it. In a workspace, also check whether another member starts or stops importing this package
+   (its `dependencies` in `pyproject.toml`); that changes this package's
+   dependents even when its own diff is empty.
 3. **Classify** the changes in these impact categories. A category applies
    only when the document does not already describe the change. Each one
    names the sections it may change:
@@ -188,7 +190,8 @@ command from the repository root.
    `<!-- END HUMAN NOTES -->` byte-for-byte. A document has exactly one;
    missing, repeated or malformed markers are an error; do not guess what
    should be preserved.
-7. Refresh provenance after validation: `source_revision` is `HEAD`,
+7. Refresh provenance after validation: `source_revision` is the commit that
+   holds the code the document describes,
    `base_revision` the baseline, `impact_categories` the categories that
    applied. If validation fails, follow the failure rule at the end of
    Validation.
@@ -244,8 +247,9 @@ The document's architecture items may individually be current, planned,
 deprecated, or unknown. The provenance `status` describes whether the document
 matches the recorded source revision.
 
-`source_revision` is the `HEAD` commit the run documented. It is the commit that holds the code the document describes; a document
-cannot cite its own commit, so the documentation commit follows it. For an initial
+`source_revision` is the commit that holds the code the document describes:
+`HEAD` when the run starts. A document cannot cite its own commit, so the
+documentation commit follows it. For an initial
 generation or a full regeneration without a baseline, set `base_revision` to
 `none`. For an initial generation, record `initial` as the only impact
 category. Write `generated_at` as `YYYY-MM-DDTHH:MM:SSZ`. `inspected_paths`

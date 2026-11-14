@@ -171,11 +171,13 @@ command from the repository root.
    revision, recording `regenerated` as the only impact category.
 2. **Triage from the diff.** Run
    `git diff --stat <baseline> -- <package> ':(exclude)<package>/docs/architecture'`
-   and `git ls-files --others --exclude-standard -- <package> ':(exclude)<package>/docs/architecture'`,
-    The first compares against the working
+   and `git ls-files --others --exclude-standard -- <package> ':(exclude)<package>/docs/architecture'`.
+   The first compares against the working
    tree, so uncommitted changes count; the second lists new files git does
-   not track yet. If both list nothing, the run is a no-op (step 4). Otherwise read the diff of the listed files, not the whole
-   project, and classify it.
+   not track yet. If both list nothing and no dependent changed, the run is a no-op (step 4). Otherwise read the diff of the listed files, not the whole
+   project, and classify it. In a workspace, also check whether another member starts or stops importing this package
+   (its `dependencies` in `pyproject.toml`); that changes this package's
+   dependents even when its own diff is empty.
 3. **Classify** the changes in these impact categories. A category applies
    only when the document does not already describe the change. Each one
    names the sections it may change:
@@ -209,9 +211,8 @@ command from the repository root.
 6. Preserve the block from `<!-- BEGIN HUMAN NOTES -->` through
    `<!-- END HUMAN NOTES -->` byte-for-byte. A document has exactly one; treat
    missing, repeated or malformed markers as an error.
-7. Refresh provenance after validation: `source_revision` is `HEAD`
-   (commit the document together with the code it describes, so the next
-   run's baseline already contains that code),
+7. Refresh provenance after validation: `source_revision` is the commit that
+   holds the code the document describes,
    `base_revision` the baseline, `impact_categories` the categories that
    applied, and `inspected_paths` gains any path the edit relies on. If
    validation fails, follow the failure rule at the end of Validation.
@@ -273,8 +274,9 @@ impact_categories:
 -->
 ```
 
-`source_revision` is the `HEAD` commit the run documented. It is the commit that holds the code the document describes; a document
-cannot cite its own commit, so the documentation commit follows it. For an initial
+`source_revision` is the commit that holds the code the document describes:
+`HEAD` when the run starts. A document cannot cite its own commit, so the
+documentation commit follows it. For an initial
 generation or a full regeneration without a baseline, set `base_revision` to
 `none`. For an initial generation, record `initial` as the only impact
 category.

@@ -34,10 +34,11 @@ uv run poe check          # format check, lint{% if cookiecutter.type_checker !=
 {% if cookiecutter.include_architecture_docs == "yes" %}- After an architecture-affecting change, run
   `.github/skills/document-executive-architecture/SKILL.md` and
   `.github/skills/document-engineering-architecture/SKILL.md` before the pull
-  request is ready. They keep `docs/architecture/` in sync.
+  request is ready. Edit `docs/architecture/` only through these skills.
 {% endif %}- A new top-level module or sub-package is a design decision. Propose its row
   for the package map, wait for approval, then add it to the map and to
-  `layers` in `pyproject.toml` in the same change.
+  `layers` in `pyproject.toml` in the same change. When nobody can approve,
+  follow `.github/skills/dev-workflow/references/pace.md`.
 - Start with one module per role. Split a module only when it passes about
   150 lines or has two reasons to change. A helper used by one module stays
   in that module.
