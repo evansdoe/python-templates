@@ -27,6 +27,21 @@ up, and CI discovers it automatically.
 The template warns if it cannot find `[tool.uv.workspace]` in a parent
 directory, which usually means you ran it from the wrong place.
 
+## What a member gets
+
+Besides `pyproject.toml`, `src/` and `tests/`, every member is baked with the
+files an agent (or a person) needs to work in it:
+
+| Path | Purpose |
+| --- | --- |
+| `AGENTS.md` | How to work in this member; `CLAUDE.md` contains only `@AGENTS.md` |
+| `docs/PLAN.md` | Concerns (one branch each), decisions log, open questions |
+| `docs/design/package-map.md` | The sub-packages the owner approved and what each may import |
+| `tests/test_architecture.py` | Runs the member's `[tool.importlinter]` contract and checks that `tests/unit/` mirrors the package |
+
+The skills live in the workspace root (`.github/skills/`), shared by every
+member, so a member carries no copy of its own.
+
 ## Depending on another member
 
 Membership in the workspace does **not** create a dependency. If this project
