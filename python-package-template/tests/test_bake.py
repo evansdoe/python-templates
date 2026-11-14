@@ -742,7 +742,7 @@ def test_agents_md_points_to_both_skills(cookies):
 
 @pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
 def test_baked_package_has_no_private_names(cookies, ci_platform):
-    root = bake(cookies, ci_platform=ci_platform, include_danger="yes").project_path
+    root = bake(cookies, ci_platform=ci_platform, include_danger="yes", include_architecture_docs="yes").project_path
     found = []
     for path in root.rglob("*"):
         if not path.is_file() or path.is_symlink():
@@ -838,7 +838,7 @@ def test_ruff_size_limits_spare_test_fixtures(cookies):
 # ──────────────────────────────────────────────────────────────────────────
 @pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
 def test_no_jinja_leaks(cookies, ci_platform):
-    result = bake(cookies, ci_platform=ci_platform)
+    result = bake(cookies, ci_platform=ci_platform, include_architecture_docs="yes")
     for root, _, files in os.walk(result.project_path):
         for f in files:
             path = os.path.join(root, f)
@@ -968,20 +968,15 @@ def test_architecture_checker_flags_a_document_missing_its_structure(cookies):
     assert "FAIL sections: missing Executive summary" in proc.stdout
 
 
-@pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
-def test_architecture_docs_on_has_no_private_names_or_jinja(cookies, ci_platform):
-    root = bake(cookies, ci_platform=ci_platform, include_architecture_docs="yes").project_path
+def test_architecture_skills_have_no_ticket_ids(cookies):
+    """The full scan and the Jinja-leak test cover the rest; ticket IDs are checked here."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    found = []
     for skill in ARCH_SKILLS:
         for path in (root / ".github/skills" / skill).rglob("*"):
-            if not path.is_file():
-                continue
-            text = path.read_text(encoding="utf-8")
-            assert "{%" not in text and "{{" not in text, path
-            for token in set(re.findall(r"[a-z0-9][a-z0-9_-]*", text.lower())):
-                digest = hashlib.sha256(token.encode()).hexdigest()[:16]
-                assert digest not in PRIVATE_NAME_HASHES, f"{path.relative_to(root)} contains a private name"
-            assert not ABSOLUTE_HOME_PATH.search(text), path
-            assert not TICKET_ID.search(text), path
+            if path.is_file():
+                found += [f"{path.relative_to(root)}: {m}" for m in TICKET_ID.findall(path.read_text())]
+    assert not found, "\n".join(found)
 
 
 def test_architecture_checker_passes_the_packages_own_lint(cookies):
