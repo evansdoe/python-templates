@@ -83,7 +83,11 @@ Each template's README lists the exact files.
 
 Each template's `tests/test_bake.py` bakes it across its parameter matrix and
 checks the output: no unrendered Jinja, valid YAML, correct feature-toggle
-routing, and (behind `--run-slow`) an actual `uv sync`. A separate
+routing, and (behind `--run-slow`) an actual `uv sync`. The same tests check
+the agent files: every generated `AGENTS.md` stays within 60 lines; the
+package and workspace bakes contain no private name, and their agent files
+no ticket ID; their skills and agents are identical; and their READMEs name
+every option and agent file. A separate
 [`integration.yml`](.github/workflows/integration.yml) workflow bakes a
 workspace plus two members — one depending on the other — and runs
 `uv sync` / `uv lock --check` over the assembled result, since that pairing
