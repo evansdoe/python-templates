@@ -536,3 +536,17 @@ def test_baked_member_has_no_private_names(cookies, project_kind):
     ).project_path
     found = private_findings(root)
     assert not found, "\n".join(found)
+
+
+TICKET_ID = re.compile(r"(?<![\w.])[A-Z]{2,10}-\d{2,6}(?![\w.])")
+MEMBER_AGENT_FILES = ["AGENTS.md", "CLAUDE.md", "docs/PLAN.md", "docs/design/package-map.md"]
+
+
+def ticket_ids(root):
+    """Return every ticket ID in the member's agent files."""
+    return [match for name in MEMBER_AGENT_FILES for match in TICKET_ID.findall((root / name).read_text())]
+
+
+@pytest.mark.parametrize("project_kind", PROJECT_KINDS)
+def test_member_agent_files_have_no_ticket_ids(cookies, project_kind):
+    assert ticket_ids(bake(cookies, project_kind=project_kind).project_path) == []
