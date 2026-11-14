@@ -18,7 +18,8 @@ toolchain. Each member lives under `projects/<name>/` with its own
 ├── pyproject.toml          # workspace root: members = ["projects/*"]
 ├── uv.lock                 # one lockfile for every member
 ├── ruff.toml               # shared lint config
-├── scripts/ci/             # project discovery used by CI
+├── AGENTS.md               # instructions for coding agents
+├── scripts/ci/             # project discovery, type-check and test runners
 └── projects/
     ├── first-project/
     └── second-project/
@@ -52,7 +53,7 @@ Generate one with the member template — the glob in `[tool.uv.workspace]` pick
 it up automatically, and CI discovers it with no pipeline edits:
 
 ```bash
-cruft create git@github.com:{{ cookiecutter.vcs_username }}/python-workspace-member.git --output-dir projects/
+cruft create git@github.com:evansdoe/python-templates.git --directory python-workspace-member --output-dir projects/
 uv sync --all-packages --all-groups
 ```
 
@@ -88,6 +89,12 @@ members. Tests run **per member**, and only for members affected by the change:
 {% endif %}
 A change to `pyproject.toml`, `uv.lock`, `ruff.toml`, `scripts/` or the CI
 config counts as affecting every member.
+
+## Working with coding agents
+
+[AGENTS.md](AGENTS.md) holds the instructions for coding agents. Each member
+under `projects/` has its own `AGENTS.md` for work inside it, and the shared
+skills live in `.github/skills/`.
 
 ## License
 

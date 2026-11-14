@@ -19,8 +19,11 @@ uv sync --all-packages --all-groups     # creates uv.lock — commit it
 my-workspace/
 ├── pyproject.toml          # virtual root: members = ["projects/*"], shared dev groups
 ├── uv.lock                 # one lockfile for every member
-├── ruff.toml               # shared lint config
-├── scripts/ci/discover_projects.py
+├── ruff.toml               # shared lint config, with function size limits
+├── AGENTS.md               # instructions for coding agents; CLAUDE.md imports it
+├── .github/skills/         # dev-workflow, python-design (+ architecture skills)
+├── .github/agents/         # tdd-refactor subagent; .claude/ holds the Claude Code copies
+├── scripts/ci/             # discover_projects.py, run_mypy.py, run_tests.py
 ├── mkdocs.yml               # optional: root docs hub (include_docs)
 └── projects/
     ├── geo-core/
@@ -101,14 +104,33 @@ pin, e.g. `0.12.5`), `ci_platform` (github/gitlab/both), `type_checker`
 (mypy/ty/none), `include_docs`, `include_precommit`, `include_devcontainer`,
 `include_danger`, `include_architecture_docs`.
 
+## Agent tooling
+
+The root holds what every member shares; each member holds what is its own.
+
+- **Root:** `AGENTS.md` (kept to 60 lines by a test; `CLAUDE.md` contains
+  only `@AGENTS.md`), the skills `.github/skills/dev-workflow` and
+  `.github/skills/python-design`, and the optional refactor subagent in
+  `.github/agents/tdd-refactor.agent.md` and `.claude/agents/tdd-refactor.md`.
+  `.claude/skills` links to `.github/skills` so Claude Code finds the same
+  skills.
+- **Each member** (from `python-workspace-member`): its own `AGENTS.md`,
+  `docs/PLAN.md`, `docs/design/package-map.md`, and an import-linter contract
+  run by `tests/test_architecture.py`.
+
+The root `AGENTS.md` tells an agent to read the member's `AGENTS.md` first,
+and how to declare a dependency on another member.
+
 ## Architecture documents (`include_architecture_docs`)
 
 Off by default. When on, the workspace gets the
-`document-engineering-architecture` and `document-executive-architecture`
-skills and their checker. Each member keeps its two documents in
+`.github/skills/document-engineering-architecture` and
+`document-executive-architecture` skills and their checker,
+`scripts/check_architecture_doc.py` inside the engineering skill. Each member keeps its two documents in
 `projects/<member>/docs/architecture/`; the root `AGENTS.md` tells agents to
-run both skills for a member after an architecture-affecting change. These
-pages stay out of the root docs site, which builds only from `docs/`.
+run both skills for a member after an architecture-affecting change and to
+edit the documents only through them. These pages stay out of the root docs
+site, which builds only from `docs/`.
 
 ## Docs (`include_docs`)
 
@@ -184,3 +206,10 @@ Member tests are left out: members legitimately reuse test file names
 (`tests/test_smoke.py` in each), which mypy cannot map to distinct modules.
 Pytest handles them via `--import-mode=importlib`. ty checks the same folders
 through `[tool.ty.src]`.
+
+## Note on running tests
+
+`uv run poe test` runs pytest through `scripts/ci/run_tests.py`. Pytest exits
+with status 5 when it collects no tests; the script treats that as success only
+when the workspace has no test files at all, so a new workspace passes and a
+member whose tests silently stop being collected still fails.

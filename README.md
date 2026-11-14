@@ -48,6 +48,24 @@ Every generated project answers to the same commands:
 uv run poe fmt | lint | types | test | cov | check | all
 ```
 
+## Agent tooling
+
+Every generated project is set up for coding agents as well as people. The
+same files serve Claude Code, GitHub Copilot and other agents that read
+`AGENTS.md`:
+
+- `AGENTS.md`, the short entry point (`CLAUDE.md` only imports it);
+- `docs/PLAN.md` and `docs/design/package-map.md` per package or member, with
+  the package map enforced by an import-linter contract and
+  `tests/test_architecture.py`;
+- the skills `dev-workflow` (example map, predictive TDD, gates, one pull
+  request) and `python-design` (where code lives and when to split), plus an
+  optional `tdd-refactor` subagent;
+- with `include_architecture_docs=yes`, two skills and a checker that keep an
+  engineering and an executive architecture document in step with the code.
+
+Each template's README lists the exact files.
+
 ## Workspace conventions
 
 - **Root shape** — `root_kind=virtual` (default) for a repo of independently

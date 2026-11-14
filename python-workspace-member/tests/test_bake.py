@@ -485,3 +485,12 @@ def test_integration_uv_sync_inside_workspace(tmp_path):
         timeout=180,
     )
     assert proc.returncode == 0, f"uv sync failed:\nstdout: {proc.stdout}\nstderr: {proc.stderr}"
+
+
+def test_template_readme_describes_the_files_each_member_gets(cookies):
+    root = bake(cookies).project_path
+    text = " ".join((TEMPLATE_ROOT / "README.md").read_text().split())
+    for path in ("AGENTS.md", "CLAUDE.md", "docs/PLAN.md", "docs/design/package-map.md", "tests/test_architecture.py"):
+        assert (root / path).exists(), path
+        assert path in text, path
+    assert "skills live in the workspace root" in text

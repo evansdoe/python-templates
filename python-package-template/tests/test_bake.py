@@ -13,6 +13,7 @@ Test tiers:
 
 import hashlib
 import importlib.util
+import json
 import os
 import re
 import subprocess
@@ -1156,3 +1157,45 @@ def test_refactor_guidance_separates_invalid_input_from_behaviour(cookies):
     assert phrase in _skill_text(root, "dev-workflow")
     for agent in (AGENT_COPILOT, AGENT_CLAUDE):
         assert phrase in _collapsed(root / agent), agent
+
+
+IDENTITY_OPTIONS = {
+    "full_name", "email", "vcs_username", "package_name", "package_description",
+    "version", "copyright_year",
+}  # fmt: skip
+AGENT_PATHS = [
+    "AGENTS.md", "CLAUDE.md", "docs/PLAN.md", "docs/design/package-map.md",
+    "tests/test_architecture.py", ".github/skills/dev-workflow",
+    ".github/skills/python-design", ".github/agents/tdd-refactor.agent.md",
+    ".claude/agents/tdd-refactor.md", ".claude/skills",
+    ".github/skills/document-engineering-architecture",
+]  # fmt: skip
+TEMPLATE_README = Path(__file__).resolve().parents[1] / "README.md"
+
+
+def _readme_text(path):
+    return " ".join(path.read_text().split())
+
+
+def test_template_readme_lists_every_option():
+    """An option missing from the README is an option nobody finds."""
+    options = json.loads((TEMPLATE_README.parent / "cookiecutter.json").read_text())
+    text = TEMPLATE_README.read_text()
+    for name in options:
+        if name.startswith("_") or name in IDENTITY_OPTIONS:
+            continue
+        assert f"`{name}`" in text, name
+
+
+def test_template_readme_names_the_agent_files_the_bake_produces(cookies):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    text = _readme_text(TEMPLATE_README)
+    for path in AGENT_PATHS:
+        assert (root / path).exists(), path
+        assert path in text, path
+
+
+def test_repository_readme_describes_the_agent_tooling():
+    text = _readme_text(TEMPLATE_README.parents[1] / "README.md")
+    for phrase in ("AGENTS.md", "python-design", "dev-workflow", "include_architecture_docs"):
+        assert phrase in text, phrase
