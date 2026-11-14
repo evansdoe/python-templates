@@ -17,6 +17,7 @@ import re
 import subprocess
 import sys
 import tomllib
+from pathlib import Path
 
 import pytest
 import yaml
@@ -156,15 +157,34 @@ def test_type_checker_pyproject(cookies, type_checker):
     result = bake(cookies, type_checker=type_checker)
     pyproject = (result.project_path / "pyproject.toml").read_text()
 
+    run_mypy = result.project_path / "scripts/ci/run_mypy.py"
     if type_checker == "mypy":
         assert "[tool.mypy]" in pyproject
-        assert "exclude = ['^projects/[^/]+/tests/']" in pyproject
+        assert 'types = "python scripts/ci/run_mypy.py"' in pyproject
+        assert run_mypy.is_file()
     elif type_checker == "ty":
         assert "[tool.ty.src]" in pyproject
+        assert '"scripts", "projects"]' in pyproject
         assert 'exclude = ["projects/*/tests"]' in pyproject
+        assert not run_mypy.exists()
     else:
         assert "[tool.mypy]" not in pyproject
         assert "[tool.ty.src]" not in pyproject
+        assert not run_mypy.exists()
+
+
+@pytest.mark.parametrize("type_checker", ["mypy", "ty"])
+@pytest.mark.parametrize("ci_platform", ["github", "gitlab"])
+def test_ci_type_step_runs_the_same_command_as_poe_types(cookies, type_checker, ci_platform):
+    """Local and CI type checks must not drift apart."""
+    root = bake(cookies, type_checker=type_checker, ci_platform=ci_platform).project_path
+    task = tomllib.loads((root / "pyproject.toml").read_text())["tool"]["poe"]["tasks"]["types"]
+    if ci_platform == "github":
+        ci = yaml.safe_load((root / ".github/workflows/ci.yml").read_text())
+        steps = [step["run"] for step in ci["jobs"]["types"]["steps"] if "run" in step]
+    else:
+        steps = yaml.safe_load((root / ".gitlab/ci/lint.yml").read_text())["types"]["script"]
+    assert f"uv run --no-sync {task}" in steps, steps
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -684,6 +704,70 @@ def test_integration_uv_sync(cookies, root_kind):
         timeout=180,
     )
     assert proc.returncode == 0, f"uv sync failed:\nstdout: {proc.stdout}\nstderr: {proc.stderr}"
+
+
+MEMBER_TEMPLATE = Path(__file__).resolve().parents[2] / "python-workspace-member"
+TYPE_CHECK_CASES = [(tc, rk) for tc in ("mypy", "ty") for rk in ROOT_KINDS]
+
+
+def synced_workspace(cookies, type_checker, root_kind="virtual"):
+    root = bake(cookies, type_checker=type_checker, root_kind=root_kind).project_path
+    sync = subprocess.run(
+        ["uv", "sync", "--all-packages", "--all-groups"], cwd=root, capture_output=True, text=True, timeout=300
+    )
+    assert sync.returncode == 0, sync.stderr
+    return root
+
+
+def run_types(root):
+    return subprocess.run(["uv", "run", "poe", "types"], cwd=root, capture_output=True, text=True, timeout=300)
+
+
+def add_member(root, name="demo"):
+    from cookiecutter.main import cookiecutter
+
+    cookiecutter(
+        str(MEMBER_TEMPLATE),
+        no_input=True,
+        output_dir=str(root / "projects"),
+        extra_context={"project_name": name, "full_name": "Test Author", "email": "test@example.com"},
+    )
+    return next((root / "projects" / name / "src").iterdir())
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("type_checker,root_kind", TYPE_CHECK_CASES)
+def test_integration_type_check_passes_on_a_new_workspace(cookies, type_checker, root_kind):
+    """A fresh workspace has no members yet; its gate must still pass."""
+    proc = run_types(synced_workspace(cookies, type_checker, root_kind))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("type_checker", ["mypy", "ty"])
+def test_integration_type_check_covers_the_workspace_scripts(cookies, type_checker):
+    root = synced_workspace(cookies, type_checker)
+    with (root / "scripts/ci/discover_projects.py").open("a") as script:
+        script.write('\nNOT_AN_INT: int = "text"\n')
+    proc = run_types(root)
+    assert proc.returncode != 0
+    assert "discover_projects.py" in proc.stdout + proc.stderr
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("type_checker", ["mypy", "ty"])
+def test_integration_type_check_covers_a_members_source(cookies, type_checker):
+    root = bake(cookies, type_checker=type_checker).project_path
+    package = add_member(root)
+    with (package / "__init__.py").open("a") as module:
+        module.write('\nNOT_AN_INT: int = "text"\n')
+    sync = subprocess.run(
+        ["uv", "sync", "--all-packages", "--all-groups"], cwd=root, capture_output=True, text=True, timeout=300
+    )
+    assert sync.returncode == 0, sync.stderr
+    proc = run_types(root)
+    assert proc.returncode != 0
+    assert f"projects/demo/src/{package.name}/__init__.py" in proc.stdout + proc.stderr
 
 
 @pytest.mark.slow

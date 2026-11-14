@@ -46,7 +46,7 @@ jobs:
       # mypy checks tests/ too, so the tests' dependencies must be present.
       - run: uv sync --all-packages --no-default-groups --group lint --group test
 {%- if cookiecutter.type_checker == "mypy" %}
-      - run: uv run --no-sync mypy
+      - run: uv run --no-sync python scripts/ci/run_mypy.py
 {%- else %}
       - run: uv run --no-sync ty check
 {%- endif %}

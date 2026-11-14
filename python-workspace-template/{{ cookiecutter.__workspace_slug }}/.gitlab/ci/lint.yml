@@ -16,7 +16,7 @@ types:
   script:
     - uv sync --all-packages --no-default-groups --group lint
 {%- if cookiecutter.type_checker == "mypy" %}
-    - uv run --no-sync mypy
+    - uv run --no-sync python scripts/ci/run_mypy.py
 {%- else %}
     - uv run --no-sync ty check
 {%- endif %}
