@@ -20,8 +20,7 @@ uv run poe fmt && uv run poe lint                  # apply formatting and lint f
 
 ## Working in a member
 
-- Read `projects/<member>/AGENTS.md` first. For that member it overrides this
-  file.
+- Read `projects/<member>/AGENTS.md` first; it overrides this file there.
 - Its `docs/PLAN.md` holds the concerns, the decisions log and the open
   questions; its `docs/design/package-map.md` holds the approved sub-packages.
 - Its `tests/test_architecture.py` enforces the package map. When it fails,
@@ -31,10 +30,16 @@ uv run poe fmt && uv run poe lint                  # apply formatting and lint f
 {% if cookiecutter.include_architecture_docs == "yes" %}- After an architecture-affecting change in a member, run
   `.github/skills/document-executive-architecture/SKILL.md` and
   `.github/skills/document-engineering-architecture/SKILL.md` for that member
-  before the pull request is ready. They keep
-  `projects/<member>/docs/architecture/` in sync.
+  before the pull request is ready. Edit `projects/<member>/docs/architecture/`
+  only through these skills.
 {% endif %}- Design decisions belong to the project owner. Propose, wait for approval,
-  then record the decision in the member's `docs/PLAN.md`.
+  then record the decision in the member's `docs/PLAN.md`. When nobody can
+  approve, follow `.github/skills/dev-workflow/references/pace.md`.
+- To depend on another member, declare the edge in the importing member:
+  `dependencies = ["ledger"]` plus `[tool.uv.sources]` with
+  `ledger = { workspace = true }`, then `uv lock`. Import the package root
+  only; import-linter cannot forbid submodules of an external package, so
+  record that rule in the member's `docs/PLAN.md`.
 
 ## Adding a member
 
@@ -45,13 +50,6 @@ uv sync --all-packages --all-groups
 
 The `members = ["projects/*"]` glob picks it up. Do not add a `[tool.ruff]`
 section to a member; it would replace the root configuration.
-
-## Depending on another member
-
-Declare the edge in the importing member: `dependencies = ["ledger"]` plus
-`[tool.uv.sources]` with `ledger = { workspace = true }`, then `uv lock`.
-Import the package root only. import-linter cannot forbid submodules of an
-external package, so record that rule in the member's `docs/PLAN.md`.
 
 ## Rules
 
