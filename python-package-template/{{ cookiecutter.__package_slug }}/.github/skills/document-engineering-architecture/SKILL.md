@@ -2,7 +2,7 @@
 name: document-engineering-architecture
 description: >
   Generate and synchronize an evidence-backed engineering architecture
-  document for this package. Use after an architecture-affecting change, before a merge request is ready, or when
+  document for one package: a standalone package or a workspace member. Use after an architecture-affecting change, before a merge request is ready, or when
   engineers need current components, interfaces, contracts, runtime flows,
   configuration, security, failure modes, testing, deployment, observability,
   and extension points with Mermaid visuals.
@@ -10,7 +10,9 @@ description: >
 
 # Document engineering architecture
 
-Create or synchronize `docs/architecture/engineering.md` for this package. Its architecture-affecting changes must keep this document in sync.
+Create or synchronize `<package>/docs/architecture/engineering.md` for one
+package. `<package>` is `.` for a standalone package and `projects/<name>` for a
+member of a uv workspace. Paths below are relative to the repository root. Its architecture-affecting changes must keep this document in sync.
 
 The document is for engineers who need to understand, operate, change, test,
 or integrate the implementation. Describe architecture and important internal
@@ -29,7 +31,7 @@ One reference file holds detail most runs don't need:
 
 Identify:
 
-1. the package root;
+1. the package (`<package>`);
 2. whether this is an initial generation (no document yet) or a
    synchronization;
 3. for synchronization, a revision to compare from, only when the user gives
@@ -55,7 +57,7 @@ the artifacts those categories touch. The evidence map covers:
 8. errors, quarantine/dead-letter behavior, recovery, and operator actions;
 9. logs, metrics, traces, manifests, reports, and provenance;
 10. test layers, fixtures, quality gates, deployment, packaging, and CI,
-    including CI jobs whose path rules or globs match this package's files;
+    including CI jobs whose path rules or globs match the package's files;
 11. verified upstream/downstream connections to any other program or repository, supported or not. For every artifact the project reads or
     writes (file, folder, table, schema), search the whole repository for
     every other program that writes or reads its path or name: other programs' source, scripts, notebooks and CI files, not only the producer
@@ -160,7 +162,7 @@ command from the repository root.
    (`git merge-base --is-ancestor`). When it is not (for example the branch
    was squashed after the document was written), use the parent of the last
    commit that changed the document's `source_revision` line:
-   `git log -1 --format=%H -G'^source_revision:' -- docs/architecture/engineering.md`,
+   `git log -1 --format=%H -G'^source_revision:' -- <package>/docs/architecture/engineering.md`,
    then `<that commit>^`. Documentation is committed together with the code it
    describes, so that commit survives squashing; taking its parent reports
    too much rather than too little, and step 3 dismisses changes the document
@@ -168,8 +170,8 @@ command from the repository root.
    baseline. If there is still no baseline, say so first and run a full regeneration against the current
    revision, recording `regenerated` as the only impact category.
 2. **Triage from the diff.** Run
-   `git diff --stat <baseline> -- . ':(exclude)docs/architecture'`
-   and `git ls-files --others --exclude-standard -- . ':(exclude)docs/architecture'`,
+   `git diff --stat <baseline> -- <package> ':(exclude)<package>/docs/architecture'`
+   and `git ls-files --others --exclude-standard -- <package> ':(exclude)<package>/docs/architecture'`,
     The first compares against the working
    tree, so uncommitted changes count; the second lists new files git does
    not track yet. If both list nothing, the run is a no-op (step 4). Otherwise read the diff of the listed files, not the whole
@@ -258,7 +260,7 @@ Place this directly below the title:
 <!-- ARCHITECTURE-DOC
 schema: 1
 audience: engineering
-project: <repository-relative project path>
+project: <package>
 status: current|stale
 source_revision: <commit>
 base_revision: <baseline commit, or none>
@@ -279,8 +281,7 @@ category.
 `inspected_paths` lists every repository path a fact in the document rests
 on, whether the document links it or not. Use a directory for a tree you read
 broadly and a file for a single file. Every repository path the document
-links must lie under an entry, except files in the project's own
-`docs/architecture/` folder; the checker enforces this, and reports entries
+links must lie under an entry, except files in the package's own `<package>/docs/architecture/` folder; the checker enforces this, and reports entries
 that are absolute, leave the repository, or do not exist. Write
 `generated_at` as `YYYY-MM-DDTHH:MM:SSZ`.
 
@@ -359,7 +360,7 @@ First run the structural checker from the repository root:
 
 ```bash
 uv run python .github/skills/document-engineering-architecture/scripts/check_architecture_doc.py \
-  docs/architecture/engineering.md
+  <package>/docs/architecture/engineering.md
 ```
 
 Exit 0 prints `no issues`; exit 1 prints one `FAIL` line per structural
@@ -388,7 +389,7 @@ Before finishing:
    explain becomes a fact or an entry in `Known gaps and decisions needed`,
    without the count (fact rule 8);
 6. compare with the executive document at
-   `docs/architecture/executive.md` in the same working tree when
+   `<package>/docs/architecture/executive.md` in the same working tree when
    it exists, and resolve contradictions without leaking unnecessary
    implementation detail into it. It is a peer document, not evidence: do not
    cite it as a source or list it in `inspected_paths`. If it does not exist,

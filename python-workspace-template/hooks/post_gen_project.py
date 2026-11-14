@@ -14,6 +14,7 @@ PRECOMMIT = "{{ cookiecutter.include_precommit }}" == "yes"
 DEVCONTAINER = "{{ cookiecutter.include_devcontainer }}" == "yes"
 DANGER = "{{ cookiecutter.include_danger }}" == "yes"
 APPLICATION_ROOT = "{{ cookiecutter.root_kind }}" == "application"
+ARCHITECTURE_DOCS = "{{ cookiecutter.include_architecture_docs }}" == "yes"
 
 
 def drop(*relative_paths: str) -> None:
@@ -29,6 +30,13 @@ if CI == "github":
     drop(".gitlab-ci.yml", ".gitlab")
 elif CI == "gitlab":
     drop(".github/workflows")  # .github/skills stays: agents read it on any host
+
+
+if not ARCHITECTURE_DOCS:
+    drop(
+        ".github/skills/document-executive-architecture",
+        ".github/skills/document-engineering-architecture",
+    )
 
 
 def link_skills() -> None:
