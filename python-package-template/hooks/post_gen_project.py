@@ -15,6 +15,7 @@ OPTIONS = {
     "devcontainer": "{{ cookiecutter.include_devcontainer }}" == "yes",
     "docker": "{{ cookiecutter.include_docker }}" == "yes",
     "danger": "{{ cookiecutter.include_danger }}" == "yes",
+    "architecture_docs": "{{ cookiecutter.include_architecture_docs }}" == "yes",
 }
 
 
@@ -31,6 +32,13 @@ if CI == "github":
     drop(".gitlab-ci.yml", ".gitlab")
 elif CI == "gitlab":
     drop(".github/workflows")  # .github/skills and .github/agents stay
+
+
+if not OPTIONS["architecture_docs"]:
+    drop(
+        ".github/skills/document-executive-architecture",
+        ".github/skills/document-engineering-architecture",
+    )
 
 
 def link_skills() -> None:

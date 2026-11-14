@@ -30,6 +30,7 @@ have a token configured (`gh auth login && gh auth setup-git`).
 | `include_devcontainer`                  | yes, no                                                      | See below for how this interacts with `include_docker`                |
 | `include_docker`                        | no, yes                                                      | Multi-stage build/runtime/dev Dockerfile                               |
 | `include_danger`                        | no, yes                                                      | Danger.js in TypeScript, works on both platforms                       |
+| `include_architecture_docs`             | no, yes                                                      | Architecture-document skills and `docs/architecture/` checker          |
 | `publish_to_pypi`                       | no, yes                                                      | Trusted publishing on GitHub, `uv publish` on GitLab                   |
 
 ## What you get

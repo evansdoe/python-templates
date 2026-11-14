@@ -31,7 +31,11 @@ uv run poe check          # format check, lint{% if cookiecutter.type_checker !=
   test first, gates, one pull request.
 - Before adding a module, class or sub-package, read
   `.github/skills/python-design/SKILL.md`.
-- A new top-level module or sub-package is a design decision. Propose its row
+{% if cookiecutter.include_architecture_docs == "yes" %}- After an architecture-affecting change, run
+  `.github/skills/document-executive-architecture/SKILL.md` and
+  `.github/skills/document-engineering-architecture/SKILL.md` before the pull
+  request is ready. They keep `docs/architecture/` in sync.
+{% endif %}- A new top-level module or sub-package is a design decision. Propose its row
   for the package map, wait for approval, then add it to the map and to
   `layers` in `pyproject.toml` in the same change.
 - Start with one module per role. Split a module only when it passes about

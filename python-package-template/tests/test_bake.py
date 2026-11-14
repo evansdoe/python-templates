@@ -41,6 +41,7 @@ DEFAULTS = {
     "include_devcontainer": "yes",
     "include_docker": "no",
     "include_danger": "no",
+    "include_architecture_docs": "no",
     "publish_to_pypi": "no",
 }
 
@@ -901,3 +902,102 @@ def test_integration_danger_lint_and_format(cookies):
 
     fmt = subprocess.run(["npm", "run", "format"], cwd=danger_dir, capture_output=True, text=True, timeout=60)
     assert fmt.returncode == 0, f"format failed:\n{fmt.stdout}\n{fmt.stderr}"
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Architecture-document skills: an opt-in bake option, off by default
+# ──────────────────────────────────────────────────────────────────────────
+ARCH_SKILLS = ["document-executive-architecture", "document-engineering-architecture"]
+CHECKER = ".github/skills/document-engineering-architecture/scripts/check_architecture_doc.py"
+
+
+def test_architecture_docs_are_off_by_default(cookies):
+    root = bake(cookies).project_path
+    for skill in ARCH_SKILLS:
+        assert not (root / ".github/skills" / skill).exists(), skill
+        assert not (root / ".claude/skills" / skill).exists(), skill
+    assert not (root / "docs/architecture").exists()
+    assert "document-executive-architecture" not in (root / "AGENTS.md").read_text()
+
+
+def test_architecture_docs_on_bakes_skills_checker_and_links(cookies):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    expected = {
+        "document-executive-architecture": [
+            "SKILL.md",
+            "references/investigation.md",
+            "references/section-guide.md",
+            "assets/project-status.template.md",
+        ],
+        "document-engineering-architecture": [
+            "SKILL.md",
+            "references/section-guide.md",
+            "scripts/check_architecture_doc.py",
+        ],
+    }
+    for skill, files in expected.items():
+        for name in files:
+            assert (root / ".github/skills" / skill / name).is_file(), f"missing {skill}/{name}"
+        assert split_frontmatter(root / ".github/skills" / skill / "SKILL.md")[0]["name"] == skill
+        assert os.readlink(root / ".claude/skills" / skill) == f"../../.github/skills/{skill}"
+    text = (root / "AGENTS.md").read_text()
+    assert "document-engineering-architecture/SKILL.md" in text
+    assert "docs/architecture/" in text
+
+
+def test_architecture_checker_reports_usage_and_rejects_paths_outside_docs(cookies, tmp_path):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    usage = subprocess.run([sys.executable, CHECKER], cwd=root, capture_output=True, text=True)
+    assert usage.returncode == 2
+    outside = root / "engineering.md"
+    outside.write_text("# not in docs\n")
+    wrong_place = subprocess.run([sys.executable, CHECKER, str(outside)], cwd=root, capture_output=True, text=True)
+    assert wrong_place.returncode == 2
+    assert "not under docs/architecture/" in wrong_place.stderr
+
+
+def test_architecture_checker_flags_a_document_missing_its_structure(cookies):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    doc = root / "docs/architecture/executive.md"
+    doc.parent.mkdir(parents=True)
+    doc.write_text("# Sample executive architecture\n")
+    proc = subprocess.run([sys.executable, CHECKER, str(doc)], cwd=root, capture_output=True, text=True)
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "FAIL provenance: block missing" in proc.stdout
+    assert "FAIL sections: missing Executive summary" in proc.stdout
+
+
+@pytest.mark.parametrize("ci_platform", CI_PLATFORMS)
+def test_architecture_docs_on_has_no_private_names_or_jinja(cookies, ci_platform):
+    root = bake(cookies, ci_platform=ci_platform, include_architecture_docs="yes").project_path
+    for skill in ARCH_SKILLS:
+        for path in (root / ".github/skills" / skill).rglob("*"):
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8")
+            assert "{%" not in text and "{{" not in text, path
+            for token in set(re.findall(r"[a-z0-9][a-z0-9_-]*", text.lower())):
+                digest = hashlib.sha256(token.encode()).hexdigest()[:16]
+                assert digest not in PRIVATE_NAME_HASHES, f"{path.relative_to(root)} contains a private name"
+            assert not ABSOLUTE_HOME_PATH.search(text), path
+            assert not TICKET_ID.search(text), path
+
+
+def test_architecture_checker_passes_the_packages_own_lint(cookies):
+    """The checker ships in the package, so it must pass the package's own ruff gate."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    proc = subprocess.run(
+        ["uvx", "ruff", "check", "--output-format", "concise", CHECKER],
+        cwd=root,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stdout
+
+
+def test_architecture_pages_are_kept_out_of_the_docs_site(cookies):
+    """Generated architecture pages are not MkDocs pages; strict builds would fail on them."""
+    on = bake(cookies, include_architecture_docs="yes").project_path
+    assert "exclude_docs" in (on / "mkdocs.yml").read_text()
+    off = bake(cookies).project_path
+    assert "exclude_docs" not in (off / "mkdocs.yml").read_text()
