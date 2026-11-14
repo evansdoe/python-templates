@@ -177,6 +177,10 @@ import, and why it ships a compiled `dist/` rather than raw TypeScript.
 
 ## Note on type checking
 
-The root mypy config excludes `projects/*/tests/`: members legitimately reuse
-test file names (`tests/test_smoke.py` in each), which mypy cannot map to
-distinct modules. Pytest handles them via `--import-mode=importlib`.
+`uv run poe types` and CI run mypy through `scripts/ci/run_mypy.py`. It checks
+`scripts/` (plus `src/` and `tests/` in an application root) and each member's
+`src/`, found when it runs, so a new workspace with no members still passes.
+Member tests are left out: members legitimately reuse test file names
+(`tests/test_smoke.py` in each), which mypy cannot map to distinct modules.
+Pytest handles them via `--import-mode=importlib`. ty checks the same folders
+through `[tool.ty.src]`.

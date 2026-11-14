@@ -53,6 +53,8 @@ def link_skills() -> None:
 
 link_skills()
 
+if "{{ cookiecutter.type_checker }}" != "mypy":
+    drop("scripts/ci/run_mypy.py")
 if not DANGER:
     drop("scripts/danger", ".gitlab/ci/danger.yml")
 if not DOCS:

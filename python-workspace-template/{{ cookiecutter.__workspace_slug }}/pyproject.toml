@@ -83,18 +83,15 @@ license = ["licensecheck>=2024.3"]
 {%- if cookiecutter.type_checker == "mypy" %}
 
 [tool.mypy]
+# Targets come from scripts/ci/run_mypy.py (`uv run poe types`): it adds each
+# member's src/ as members appear, which a fixed list cannot do.
 python_version = "{{ cookiecutter.min_python_version }}"
-files = [{% if cookiecutter.root_kind == "application" %}"src", "tests", {% endif %}"projects"]
-# Members share test file names (every project has tests/test_smoke.py), which
-# mypy cannot map to distinct modules. Type checking covers src/; pytest covers
-# the tests themselves.
-exclude = ['^projects/[^/]+/tests/']
 strict = true
 warn_unreachable = true
 {%- elif cookiecutter.type_checker == "ty" %}
 
 [tool.ty.src]
-include = [{% if cookiecutter.root_kind == "application" %}"src", "tests", {% endif %}"projects"]
+include = [{% if cookiecutter.root_kind == "application" %}"src", "tests", {% endif %}"scripts", "projects"]
 exclude = ["projects/*/tests"]
 {%- endif %}
 
@@ -104,7 +101,7 @@ lint = "ruff check --fix ."
 "lint:check" = "ruff check ."
 "fmt:check" = "ruff format --check ."
 {%- if cookiecutter.type_checker == "mypy" %}
-types = "mypy"
+types = "python scripts/ci/run_mypy.py"
 {%- elif cookiecutter.type_checker == "ty" %}
 types = "ty check"
 {%- endif %}
