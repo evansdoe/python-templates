@@ -106,7 +106,7 @@ types = "python scripts/ci/run_mypy.py"
 {%- elif cookiecutter.type_checker == "ty" %}
 types = "ty check"
 {%- endif %}
-test = "pytest"
+test = "python scripts/ci/run_tests.py"
 cov = "pytest --cov=projects --cov-report=term-missing --cov-report=xml"
 check = ["fmt:check", "lint:check"{% if cookiecutter.type_checker != "none" %}, "types"{% endif %}]
 all = ["check", "test"]
