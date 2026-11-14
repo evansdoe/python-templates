@@ -12,6 +12,7 @@ Test tiers:
 """
 
 import hashlib
+import importlib.util
 import os
 import re
 import subprocess
@@ -918,3 +919,52 @@ def test_agents_md_explains_a_dependency_between_members(cookies):
     assert "import-linter" in agents and "external package" in agents
     pyproject = " ".join((root / "pyproject.toml").read_text().split())
     assert "unless one member depends on another" in pyproject
+
+
+def load_run_tests(root):
+    """Import the baked scripts/ci/run_tests.py without running it."""
+    spec = importlib.util.spec_from_file_location("run_tests", root / "scripts/ci/run_tests.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize("root_kind", ROOT_KINDS)
+def test_poe_test_runs_the_run_tests_script(cookies, root_kind):
+    root = bake(cookies, root_kind=root_kind).project_path
+    assert (root / "scripts/ci/run_tests.py").is_file()
+    tasks = tomllib.loads((root / "pyproject.toml").read_text())["tool"]["poe"]["tasks"]
+    assert tasks["test"] == "python scripts/ci/run_tests.py"
+
+
+@pytest.mark.parametrize(
+    "code,has_tests,expected",
+    [(5, False, 0), (5, True, 5), (1, False, 1), (0, True, 0)],
+)
+def test_run_tests_exit_status(cookies, tmp_path, code, has_tests, expected):
+    """Pytest's "no tests collected" (5) is fine only while the workspace holds no tests."""
+    module = load_run_tests(bake(cookies).project_path)
+    if has_tests:
+        (tmp_path / "projects/demo/tests").mkdir(parents=True)
+        (tmp_path / "projects/demo/tests/test_demo.py").write_text("")
+    assert module.exit_status(code, tmp_path) == expected
+
+
+@pytest.mark.slow
+def test_poe_test_passes_on_a_workspace_without_members(cookies):
+    root = synced_workspace(cookies, "mypy")
+    proc = subprocess.run(["uv", "run", "poe", "test"], cwd=root, capture_output=True, text=True, timeout=300)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+@pytest.mark.slow
+def test_poe_test_runs_a_members_tests(cookies):
+    root = bake(cookies).project_path
+    add_member(root)
+    sync = subprocess.run(
+        ["uv", "sync", "--all-packages", "--all-groups"], cwd=root, capture_output=True, text=True, timeout=300
+    )
+    assert sync.returncode == 0, sync.stderr
+    proc = subprocess.run(["uv", "run", "poe", "test"], cwd=root, capture_output=True, text=True, timeout=300)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "passed" in proc.stdout
