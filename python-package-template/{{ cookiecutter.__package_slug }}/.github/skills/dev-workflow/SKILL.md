@@ -87,8 +87,9 @@ Concern: feat/csv-import            pace: every-step ×2, then per-cycle
 - Keep the plan in the chat and the agent's todo list. Do not commit it.
 
 Before creating a branch, post the plan (subtasks, branches, example maps,
-step plans) and get the user's confirmation. A subtask is ready when every
-rule has an example and no open question blocks it.
+step plans) and get the user's confirmation. When the user is not present,
+put the plan at the top of the work and go on (section 2a). A subtask is ready
+when every rule has an example and no open question blocks it.
 
 ## 2. Predictive TDD per subtask
 Use this for any change to behaviour. Configuration, documentation and
@@ -185,6 +186,8 @@ a confirmed pace, use `per-cycle`.
 ## 4. Commits per subtask, then squash
 - One local WIP commit per completed cycle (after Refactor), plus one for the
   test list. Every WIP commit passes the gate. WIP commits are not pushed.
+- A WIP subject is `wip: <what the cycle did>`. Only the squashed commit
+  follows the template below.
 
 ### End-of-subtask checklist (in this order)
 1. Keep the design documents in step (section 3).

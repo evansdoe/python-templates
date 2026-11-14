@@ -30,7 +30,8 @@ If one of these is missing, say so and propose adding it. Do not work around it.
 Propose the map before the first module is written, and again before any
 sub-package is added, renamed, split or removed. Wait for approval. Then change
 the map and the `layers` list in the same commit and record the decision in
-`docs/PLAN.md`.
+`docs/PLAN.md`. When nobody can approve (an unattended run), follow the
+provisional rule in `.github/skills/dev-workflow/references/pace.md`.
 
 **Roles.** Names differ per package; roles do not. Every sub-package has one:
 
@@ -145,7 +146,7 @@ exception class, an SDK import or a sub-package `__init__.py`.
 | Failure | Do |
 |---|---|
 | Import contract broken | The import points the wrong way. Move the code, or pass the dependency in as a parameter |
-| Module "not listed as layers" | A new top-level name. Propose its package-map row; do not add it to the contract unapproved |
+| Module "not listed as layers" | A new top-level name. Propose its package-map row; do not add it to the contract unapproved, except provisionally in an unattended run (section 2) |
 | Map and contract disagree | Bring both in line with what was approved; if nothing was approved, ask |
 | `tests/unit` folder has no sub-package | Move the tests to the mirrored path |
 | Forbidden-import contract broken | An SDK is used outside its sub-package. Move the call there and pass the result or the object in |
