@@ -245,6 +245,9 @@ fix(csv-tools): report the line number of a malformed row
   same, plus `uv run poe test` for the whole repository.
 - `uv run poe fmt` and `uv run poe lint` rewrite files; stage their result
   before committing, or CI's checks fail on the commit.
+- A gate script must exit non-zero when any step fails. Chain the steps with
+  `&&` or check each exit status, and never let a later success hide an
+  earlier failure.
 - The CI configuration is the authority. If it runs a check this list does not
   name (coverage thresholds, extra tools), run it too and report the
   difference.

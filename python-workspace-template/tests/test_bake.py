@@ -1017,3 +1017,27 @@ def test_dev_workflow_covers_stub_fields_and_single_examples(cookies):
     text = _skill_text(bake(cookies).project_path, "dev-workflow")
     assert "temporary default" in text
     assert "only one example" in text
+
+
+def test_dev_workflow_gate_scripts_fail_on_error(cookies):
+    """A gate script that hides an early failure lets a broken Red test be committed."""
+    text = _skill_text(bake(cookies).project_path, "dev-workflow")
+    assert "A gate script must exit non-zero when any step fails" in text
+    assert "never let a later success hide an earlier failure" in text
+
+
+def test_architecture_skills_take_generated_at_from_the_clock(cookies):
+    """Trial runs wrote placeholder times; the clock is the only valid source."""
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    for skill in ARCH_SKILLS:
+        text = _skill_text(root, skill)
+        assert "date -u +%Y-%m-%dT%H:%M:%SZ" in text, skill
+        assert "never a placeholder" in text, skill
+
+
+def test_pace_rule_adds_a_stub_so_the_import_contract_can_pass(cookies):
+    """import-linter rejects a contract naming a module that does not exist yet."""
+    root = bake(cookies).project_path
+    text = _collapsed(root / ".github/skills/dev-workflow/references/pace.md")
+    assert "empty module with its docstring" in text
+    assert "Proposed, not approved" in text

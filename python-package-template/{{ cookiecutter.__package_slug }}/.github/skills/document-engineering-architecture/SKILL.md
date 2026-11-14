@@ -286,7 +286,7 @@ on, whether the document links it or not. Use a directory for a tree you read
 broadly and a file for a single file. Every repository path the document
 links must lie under an entry, except files in the package's own `<package>/docs/architecture/` folder; the checker enforces this, and reports entries
 that are absolute, leave the repository, or do not exist. Write
-`generated_at` as `YYYY-MM-DDTHH:MM:SSZ`.
+`generated_at` from the clock (`date -u +%Y-%m-%dT%H:%M:%SZ`), never a placeholder or a guessed time.
 
 Provenance describes the document as delivered, not its first draft. Whenever
 you change the document after writing its provenance, in the same run or a

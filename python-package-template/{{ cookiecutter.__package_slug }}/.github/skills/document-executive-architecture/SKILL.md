@@ -252,7 +252,7 @@ matches the recorded source revision.
 documentation commit follows it. For an initial
 generation or a full regeneration without a baseline, set `base_revision` to
 `none`. For an initial generation, record `initial` as the only impact
-category. Write `generated_at` as `YYYY-MM-DDTHH:MM:SSZ`. `inspected_paths`
+category. Write `generated_at` from the clock (`date -u +%Y-%m-%dT%H:%M:%SZ`), never a placeholder or a guessed time. `inspected_paths`
 lists every repository path a fact rests on; every path the document links
 must lie under an entry, except the peer document in `<package>/docs/architecture/`.
 Whenever you change the document after writing its provenance, refresh

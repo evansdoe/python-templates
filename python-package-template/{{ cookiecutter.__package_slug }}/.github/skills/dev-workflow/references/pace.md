@@ -37,8 +37,9 @@ work, the closer the stops:
   record the proposal in the report and continue only with work that does not
   depend on it.
 - When the work cannot go on without it (a new module the import contract
-  must list), make the change provisionally: add the package-map row and the
-  contract entry in one commit, write "Proposed, not approved: <names>" under
+  must list), make the change provisionally: add the package-map row, an empty module
+  with its docstring so the import contract can pass, and the contract entry,
+  all in one commit; write "Proposed, not approved: <names>" under
   Open in `docs/PLAN.md`, and list it first in the report. The owner approves
   or reverts it before anything is pushed.
 - Do not squash, push, force-push, or open or update a pull request.
