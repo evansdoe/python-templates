@@ -21,6 +21,7 @@ my-workspace/
 ├── uv.lock                 # one lockfile for every member
 ├── ruff.toml               # shared lint config, with function size limits
 ├── AGENTS.md               # instructions for coding agents; CLAUDE.md imports it
+├── docs/GLOSSARY.md        # the workspace's terms in plain words, shared by every member
 ├── .github/skills/         # dev-workflow, python-design (+ architecture skills)
 ├── .github/agents/         # tdd-refactor subagent; .claude/ holds the Claude Code copies
 ├── scripts/ci/             # discover_projects.py, run_mypy.py, run_tests.py
@@ -113,7 +114,8 @@ The root holds what every member shares; each member holds what is its own.
   `.github/skills/python-design`, and the optional refactor subagent in
   `.github/agents/tdd-refactor.agent.md` and `.claude/agents/tdd-refactor.md`.
   `.claude/skills` links to `.github/skills` so Claude Code finds the same
-  skills.
+  skills. `docs/GLOSSARY.md` holds the terms every member shares, in plain
+  words; it is kept even when the docs site is off.
 - **Each member** (from `python-workspace-member`): its own `AGENTS.md`,
   `docs/PLAN.md`, `docs/design/package-map.md`, and an import-linter contract
   run by `tests/test_architecture.py`.

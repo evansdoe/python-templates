@@ -58,7 +58,8 @@ if "{{ cookiecutter.type_checker }}" != "mypy":
 if not DANGER:
     drop("scripts/danger", ".gitlab/ci/danger.yml")
 if not DOCS:
-    drop("docs", "mkdocs.yml")
+    # Only the MkDocs site; docs/GLOSSARY.md is always kept.
+    drop("docs/index.md", "mkdocs.yml")
 if not PRECOMMIT:
     drop(".pre-commit-config.yaml")
 if not DEVCONTAINER:

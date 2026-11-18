@@ -203,7 +203,8 @@ command from the repository root.
 5. **Edit in place.** If impact exists, read further only as far as the
    affected categories need. Edit only the sections their rows name, plus
    `Known gaps and decisions needed` and `Glossary` where the change affects
-   them; every other section stays byte-identical. Never rewrite the whole
+   them (for a term in the project glossary, take its wording from
+   `docs/GLOSSARY.md` at the repository root); every other section stays byte-identical. Never rewrite the whole
    file during synchronization. Then check what links to the changed
    material, such as diagrams and other sections, for contradictions. A
    section found contradicting the change becomes affected: edit it, and

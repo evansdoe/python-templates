@@ -55,6 +55,8 @@ same files serve Claude Code, GitHub Copilot and other agents that read
 `AGENTS.md`:
 
 - `AGENTS.md`, the short entry point (`CLAUDE.md` only imports it);
+- `docs/GLOSSARY.md`, the project's terms in plain words, which agents use
+  and extend as they go;
 - `docs/PLAN.md` and `docs/design/package-map.md` per package or member, with
   the package map enforced by an import-linter contract and
   `tests/test_architecture.py`;

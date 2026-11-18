@@ -16,6 +16,8 @@ this member, this file wins.
   contract.
 - `tests/test_architecture.py`: runs the contract and checks that
   `tests/unit/` mirrors the package.
+- The workspace root's `docs/GLOSSARY.md`: the project's terms in plain
+  words. Use them, and add a term there the first time you need it.
 
 ## Commands (from the workspace root)
 

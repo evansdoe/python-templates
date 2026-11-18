@@ -162,6 +162,10 @@ a confirmed pace, use `per-cycle`.
   decided (Refactor). Then wait.
 - Explain a new library, pattern or non-obvious decision in plain terms, and
   name the main alternative you rejected and why.
+- Use the terms in `docs/GLOSSARY.md` at the repository root, in code names,
+  tests and checkpoints alike. The first time a plan, checkpoint or pull
+  request needs a term it lacks, explain the term in one plain sentence and
+  add its row to `docs/GLOSSARY.md` in the same commit.
 - No drive-by changes: mention them instead of making them.
 - Stop and ask at any pace when scope grows, a design choice has real
   trade-offs, a gate fails for a non-trivial reason, or something unexpected

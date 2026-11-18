@@ -550,3 +550,11 @@ def ticket_ids(root):
 @pytest.mark.parametrize("project_kind", PROJECT_KINDS)
 def test_member_agent_files_have_no_ticket_ids(cookies, project_kind):
     assert ticket_ids(bake(cookies, project_kind=project_kind).project_path) == []
+
+
+def test_member_agents_md_points_to_the_workspace_glossary(cookies):
+    """Members share one vocabulary, kept at the workspace root."""
+    root = bake(cookies).project_path
+    text = " ".join((root / "AGENTS.md").read_text().split())
+    assert "workspace root's `docs/GLOSSARY.md`" in text
+    assert not (root / "docs/GLOSSARY.md").exists()

@@ -184,7 +184,8 @@ command from the repository root.
    and delete a row whose last citation was removed. Leave every other row
    as it is, and give new markers the next unused number rather than
    renumbering. Add a `Glossary` entry for each new term the edits
-   introduce. Every other section stays byte-identical. Never rewrite the
+   introduce; when the term is in the project glossary, take its wording from
+   `docs/GLOSSARY.md` at the repository root. Every other section stays byte-identical. Never rewrite the
    whole file during synchronization.
 6. Preserve the block from `<!-- BEGIN HUMAN NOTES -->` through
    `<!-- END HUMAN NOTES -->` byte-for-byte. A document has exactly one;

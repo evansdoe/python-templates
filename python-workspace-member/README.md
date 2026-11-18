@@ -40,7 +40,8 @@ files an agent (or a person) needs to work in it:
 | `tests/test_architecture.py` | Runs the member's `[tool.importlinter]` contract and checks that `tests/unit/` mirrors the package |
 
 The skills live in the workspace root (`.github/skills/`), shared by every
-member, so a member carries no copy of its own.
+member, so a member carries no copy of its own. The same goes for the
+glossary of project terms, `docs/GLOSSARY.md` at the workspace root.
 
 ## Depending on another member
 

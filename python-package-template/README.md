@@ -44,6 +44,7 @@ my-package/
 ├── src/my_package/         # src layout, with py.typed
 ├── tests/                  # test_architecture.py, unit/ mirrors the package
 ├── docs/PLAN.md            # concerns, decisions log, open questions
+├── docs/GLOSSARY.md        # the project's terms in plain words
 ├── docs/design/package-map.md
 ├── .github/skills/         # dev-workflow, python-design (+ architecture skills)
 ├── .github/agents/         # tdd-refactor subagent (Copilot); .claude/ holds the Claude Code copies
@@ -64,6 +65,7 @@ are always baked; only the architecture skills are optional.
 | --- | --- |
 | `AGENTS.md` | Entry point: where things are, the commands, the rules. `CLAUDE.md` contains only `@AGENTS.md`, so Claude Code reads the same text. Kept to 60 lines by a test. |
 | `docs/PLAN.md` | The concerns (one branch each), the decisions log and the open questions. |
+| `docs/GLOSSARY.md` | The project's terms in plain words, with an example each, plus the workflow's own terms. Agents use these words and add a term the first time they need it. |
 | `docs/design/package-map.md` | The sub-packages the owner approved: role, what belongs there, what each may import. |
 | `[tool.importlinter]` + `tests/test_architecture.py` | The package map as an exhaustive `layers` contract, run by pytest, which also checks that `tests/unit/` mirrors the package. |
 | `.github/skills/dev-workflow` | How a change is made: example map, predictive TDD, a pace the owner chooses, gates through `poe`, one pull request. `references/pace.md` covers unattended runs. |
