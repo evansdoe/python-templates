@@ -1164,7 +1164,7 @@ IDENTITY_OPTIONS = {
     "version", "copyright_year",
 }  # fmt: skip
 AGENT_PATHS = [
-    "AGENTS.md", "CLAUDE.md", "docs/PLAN.md", "docs/design/package-map.md",
+    "AGENTS.md", "CLAUDE.md", "docs/GLOSSARY.md", "docs/PLAN.md", "docs/design/package-map.md",
     "tests/test_architecture.py", ".github/skills/dev-workflow",
     ".github/skills/python-design", ".github/agents/tdd-refactor.agent.md",
     ".claude/agents/tdd-refactor.md", ".claude/skills",
@@ -1208,3 +1208,33 @@ def test_contributing_points_to_the_shared_workflow(cookies):
     for phrase in ("[AGENTS.md](AGENTS.md)", ".github/skills/dev-workflow/SKILL.md",
                    ".github/skills/python-design/SKILL.md", "package-map.md"):  # fmt: skip
         assert phrase in text, phrase
+
+
+GLOSSARY = "docs/GLOSSARY.md"
+GLOSSARY_RULE = "add its row to `docs/GLOSSARY.md` in the same commit"
+
+
+@pytest.mark.parametrize("include_docs", ["yes", "no"])
+def test_glossary_is_baked_with_the_workflow_terms(cookies, include_docs):
+    """The glossary survives without the docs site, and starts with the workflow's own words."""
+    text = (bake(cookies, include_docs=include_docs).project_path / GLOSSARY).read_text()
+    assert "## Project terms" in text
+    assert "## Workflow terms" in text
+    for term in ("Example map", "Red", "Green", "Refactor", "Gate", "Package map", "Squash"):
+        assert f"| {term} |" in text, term
+
+
+def test_agents_md_points_to_the_glossary(cookies):
+    for docs in ("yes", "no"):
+        root = bake(cookies, include_architecture_docs=docs).project_path
+        assert "Use the terms in `docs/GLOSSARY.md`" in _collapsed(root / "AGENTS.md")
+
+
+def test_dev_workflow_keeps_terms_in_the_glossary(cookies):
+    assert GLOSSARY_RULE in _skill_text(bake(cookies).project_path, "dev-workflow")
+
+
+def test_architecture_glossaries_reuse_the_project_glossary(cookies):
+    root = bake(cookies, include_architecture_docs="yes").project_path
+    for skill in ARCH_SKILLS:
+        assert "take its wording from `docs/GLOSSARY.md`" in _skill_text(root, skill), skill

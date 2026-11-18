@@ -28,7 +28,7 @@ uv run poe check          # format check, lint{% if cookiecutter.type_checker !=
 ## Rules
 
 - Every code change follows `.github/skills/dev-workflow/SKILL.md`: plan,
-  test first, gates, one pull request.
+  test first, gates, one pull request. Use the terms in `docs/GLOSSARY.md`.
 - Before adding a module, class or sub-package, read
   `.github/skills/python-design/SKILL.md`.
 {% if cookiecutter.include_architecture_docs == "yes" %}- After an architecture-affecting change, run
