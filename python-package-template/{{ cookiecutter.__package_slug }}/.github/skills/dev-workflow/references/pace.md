@@ -43,6 +43,6 @@ work, the closer the stops:
   Open in `docs/PLAN.md`, and list it first in the report. The owner approves
   or reverts it before anything is pushed.
 - Do not squash, push, force-push, or open or update a pull request.
-- Finish with a report: the plan and assumptions, the checkpoints in commit
-  order, every prediction mismatch, every deviation from the step plan with
+- Finish with a report: the plan and assumptions, the plain explanations in
+  commit order (the walkthrough), the technical checkpoints, every prediction mismatch, every deviation from the step plan with
   its reason, the gate results, and the decisions waiting for the user.

@@ -68,7 +68,7 @@ are always baked; only the architecture skills are optional.
 | `docs/GLOSSARY.md` | The project's terms in plain words, with an example each, plus the workflow's own terms. Agents use these words and add a term the first time they need it. |
 | `docs/design/package-map.md` | The sub-packages the owner approved: role, what belongs there, what each may import. |
 | `[tool.importlinter]` + `tests/test_architecture.py` | The package map as an exhaustive `layers` contract, run by pytest, which also checks that `tests/unit/` mirrors the package. |
-| `.github/skills/dev-workflow` | How a change is made: example map, predictive TDD, a pace the owner chooses, gates through `poe`, one pull request. `references/pace.md` covers unattended runs. |
+| `.github/skills/dev-workflow` | How a change is made: example map, predictive TDD, a pace the owner chooses, gates through `poe`, one pull request. Every checkpoint starts with a plain-language explanation of what the program can now do, with a diagram when the structure changes; `.walkthrough/<branch>.md` (ignored by git) collects them. `references/pace.md` covers unattended runs. |
 | `.github/skills/python-design` | Where code lives and what shape it takes, and when a module, class or sub-package is justified. |
 | `.github/agents/tdd-refactor.agent.md`, `.claude/agents/tdd-refactor.md` | Optional subagent that runs the Refactor step in a fresh context. |
 | `.claude/skills` | Symlinks to `.github/skills`, so Claude Code finds the same skills. |

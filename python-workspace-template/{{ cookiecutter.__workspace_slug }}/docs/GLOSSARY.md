@@ -36,4 +36,5 @@ details.
 | Refactor | Tidying the code without changing what it does, while every test still passes. |
 | Squash | Combining the small save points of a piece of work into one tidy commit before review. |
 | Test list | The tests written first and switched off, simplest first; each is switched on in turn. |
+| Walkthrough | The plain-language story of a branch, one entry per step, kept in `.walkthrough/<branch>.md` and never committed. |
 | WIP commit | A small local save point after each step; never pushed. |

@@ -486,6 +486,7 @@ WORKFLOW_FILES = [
     "SKILL.md",
     "references/isolated-refactor.md",
     "references/pace.md",
+    "references/explaining.md",
     "references/review-comments.md",
 ]
 AGENT_COPILOT = ".github/agents/tdd-refactor.agent.md"
@@ -1144,3 +1145,43 @@ def test_architecture_glossaries_reuse_the_project_glossary(cookies):
 def test_workspace_glossary_names_the_member_term(cookies):
     text = (bake(cookies).project_path / GLOSSARY).read_text()
     assert "| Member |" in text
+
+
+EXPLAINING = ".github/skills/dev-workflow/references/explaining.md"
+
+
+def test_checkpoints_start_in_plain_words(cookies):
+    """The developer follows what the program can now do, not only the TDD mechanics."""
+    text = _skill_text(bake(cookies).project_path, "dev-workflow")
+    assert "start with **In plain words**" in text
+    assert "Describe only what the diff shows" in text
+    assert "technical only" in text
+
+
+def test_checkpoints_draw_a_diagram_only_when_structure_changes(cookies):
+    text = _skill_text(bake(cookies).project_path, "dev-workflow")
+    assert "Mermaid diagram" in text
+    assert "No diagram for a Red step or a rename" in text
+
+
+def test_walkthrough_file_stays_out_of_git(cookies):
+    root = bake(cookies).project_path
+    assert ".walkthrough/" in (root / ".gitignore").read_text().splitlines()
+    assert "`.walkthrough/<branch>.md`" in _skill_text(root, "dev-workflow")
+
+
+def test_explaining_reference_has_an_example_for_every_step(cookies):
+    text = (bake(cookies).project_path / EXPLAINING).read_text()
+    for heading in ("## Test list", "## Red", "## Green", "## Refactor"):
+        assert heading in text, heading
+    assert "```mermaid" in text
+
+
+def test_unattended_report_carries_the_plain_explanations(cookies):
+    root = bake(cookies).project_path
+    text = _collapsed(root / ".github/skills/dev-workflow/references/pace.md")
+    assert "the plain explanations in commit order" in text
+
+
+def test_glossary_defines_the_walkthrough(cookies):
+    assert "| Walkthrough |" in (bake(cookies).project_path / GLOSSARY).read_text()
