@@ -60,8 +60,8 @@ same files serve Claude Code, GitHub Copilot and other agents that read
 - `docs/PLAN.md` and `docs/design/package-map.md` per package or member, with
   the package map enforced by an import-linter contract and
   `tests/test_architecture.py`;
-- the skills `dev-workflow` (example map, predictive TDD, gates, one pull
-  request) and `python-design` (where code lives and when to split), plus an
+- the skills `dev-workflow` (example map, predictive TDD, checkpoints that
+  start in plain words, gates, one pull request) and `python-design` (where code lives and when to split), plus an
   optional `tdd-refactor` subagent;
 - with `include_architecture_docs=yes`, two skills and a checker that keep an
   engineering and an executive architecture document in step with the code.

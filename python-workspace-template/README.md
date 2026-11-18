@@ -115,7 +115,9 @@ The root holds what every member shares; each member holds what is its own.
   `.github/agents/tdd-refactor.agent.md` and `.claude/agents/tdd-refactor.md`.
   `.claude/skills` links to `.github/skills` so Claude Code finds the same
   skills. `docs/GLOSSARY.md` holds the terms every member shares, in plain
-  words; it is kept even when the docs site is off.
+  words; it is kept even when the docs site is off. Each development
+  checkpoint starts with a plain-language explanation, collected in
+  `.walkthrough/<branch>.md`, which git ignores.
 - **Each member** (from `python-workspace-member`): its own `AGENTS.md`,
   `docs/PLAN.md`, `docs/design/package-map.md`, and an import-linter contract
   run by `tests/test_architecture.py`.

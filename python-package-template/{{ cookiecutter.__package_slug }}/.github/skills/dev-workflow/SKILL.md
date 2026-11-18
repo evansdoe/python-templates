@@ -155,11 +155,24 @@ The pace decides where the agent stops and waits. Read
 `references/pace.md` when proposing a pace or when the user changes it. Without
 a confirmed pace, use `per-cycle`.
 
-- At each stop, post a checkpoint of at most about 8 lines, starting with
-  progress against the step plan (`Step 2/8 · cycle 3 of 5 · next: ...`):
-  the test list; or the active test, prediction, result and why this is the
-  intended failure (Red); or the change and result (Green); or what the review
-  decided (Refactor). Then wait.
+- At each stop, post a checkpoint. Begin with progress against the step plan
+  (`Step 2/8 · cycle 3 of 5 · next: ...`). After the progress line, start with
+  **In plain words**: two or three sentences, in the glossary's terms, on what
+  the program can now do that it could not before, with one concrete example
+  from the example map; for a refactor, that the behaviour did not change and
+  what got easier. Describe only what the diff shows. Then at most about 8
+  technical lines: the test list; or the active test, prediction, result and
+  why this is the intended failure (Red); or the change and result (Green); or
+  what the review decided (Refactor). Then wait.
+- When a step changes structure or flow (a new module, one part now calling
+  another, data taking a new path), add a Mermaid diagram of at most about ten
+  nodes with the new part marked. No diagram for a Red step or a rename.
+- Append each checkpoint's plain part, and its diagram, to
+  `.walkthrough/<branch>.md`, which git ignores; write the pull request
+  description from it. `references/explaining.md` has a worked example for
+  each step.
+- Plain explanations are on at every pace. When the user says "technical
+  only", leave them out until they ask for them again.
 - Explain a new library, pattern or non-obvious decision in plain terms, and
   name the main alternative you rejected and why.
 - Use the terms in `docs/GLOSSARY.md` at the repository root, in code names,
@@ -170,8 +183,8 @@ a confirmed pace, use `per-cycle`.
 - Stop and ask at any pace when scope grows, a design choice has real
   trade-offs, a gate fails for a non-trivial reason, or something unexpected
   turns up.
-- The WIP history is the walkthrough and squashing removes it, so squash only
-  after the user confirms they understand the subtask.
+- Squashing removes the WIP history, so squash only after the user confirms
+  they understand the subtask; `.walkthrough/<branch>.md` keeps the story.
 - When the user is not present (a scheduled or headless run, or they said they
   are away), follow `references/pace.md`, section "When the user is not
   present". In short: work on, record assumptions, never squash or push.
