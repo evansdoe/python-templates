@@ -77,7 +77,8 @@ Run a member's own entry point with `uv run --package <name> <command>`.
 ## Containers
 
 `compose.yaml` has one development container for the whole workspace, built
-from the `dev` stage of the `Dockerfile`:
+from the `dev` stage of the `Dockerfile`; the same file builds images for the
+members that ship (below):
 
 ```bash
 docker compose run --rm dev bash         # a shell in the container
@@ -109,10 +110,37 @@ docker compose run --rm dev uv run python -c "import torch; print(torch.cuda.is_
 ```
 {%- endif %}
 
+### Shipping a member as an image
+
+The same `Dockerfile` builds an image for one `application` member: its
+`build` stage installs that member and the workspace members it uses, and the
+`runtime` image holds only that virtual environment and runs the member's
+command as a non-root user. Libraries ship inside the applications that use
+them; research members are not shipped. `uv.lock` must be committed.
+
+```bash
+docker build --build-arg MEMBER=ledger -t ledger .
+docker run --rm ledger
+```
+
+`compose.yaml` cannot list the members by itself, since they are added later;
+give each member that ships a service of its own:
+
+```yaml
+services:
+  ledger:
+    build:
+      context: .
+      target: runtime
+      args:
+        MEMBER: ledger
+```
+
 ### Adding a service
 
 A service the members need, such as a database, is a new entry under
-`services:`, and `depends_on` starts it before `dev`. For PostgreSQL, add
+`services:`, and `depends_on` starts it before `dev` (or before a member's
+service). For PostgreSQL, add
 these lines to `compose.yaml`:
 
 ```yaml

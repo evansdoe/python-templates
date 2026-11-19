@@ -1286,3 +1286,136 @@ def test_generated_readme_explains_the_dev_container(cookies):
     gpu = (bake(cookies, include_docker="yes", accelerator="nvidia").project_path / "README.md").read_text()
     assert "NVIDIA Container Toolkit" in " ".join(gpu.split())
     assert "compose.yaml" not in (bake(cookies).project_path / "README.md").read_text()
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Docker (include_docker): shipping one application member as an image
+# ──────────────────────────────────────────────────────────────────────────
+def _dockerfile(root):
+    return (root / "Dockerfile").read_text()
+
+
+def _stage(text, name):
+    """The lines of one Dockerfile stage, from its FROM up to the next FROM."""
+    start = text.index(f" AS {name}\n")
+    end = text.find("\nFROM ", start)
+    return text[start:] if end == -1 else text[start:end]
+
+
+def test_dockerfile_stages_end_with_the_runtime_image(cookies):
+    """`docker build` builds the last stage, so a plain build gives the shipping image."""
+    stages = re.findall(r"^FROM \S+ AS (\w+)$", _dockerfile(bake(cookies, include_docker="yes").project_path), re.MULTILINE)
+    assert stages == ["uv", "build", "dev", "runtime"]
+
+
+def test_build_stage_installs_one_member_without_its_source(cookies):
+    build = _stage(_dockerfile(bake(cookies, include_docker="yes").project_path), "build")
+    assert "ARG MEMBER" in build
+    assert "Pass the member to build: --build-arg MEMBER=<name>" in build
+    assert 'uv sync --frozen --no-install-workspace --package "$MEMBER" --no-editable --no-default-groups' in build
+    assert 'uv sync --locked --package "$MEMBER" --no-editable --no-default-groups' in build
+
+
+def test_runtime_stage_holds_only_the_virtual_environment(cookies):
+    runtime = _stage(_dockerfile(bake(cookies, include_docker="yes").project_path), "runtime")
+    assert "COPY --from=build --chown=app:app /app/.venv /app/.venv" in runtime
+    assert "COPY . " not in runtime
+    assert "USER app" in runtime
+    # An application member's command is named after the member.
+    assert 'CMD ["sh", "-c", "exec \\"$MEMBER\\""]' in runtime
+
+
+def test_generated_readme_explains_member_images(cookies):
+    text = (bake(cookies, include_docker="yes").project_path / "README.md").read_text()
+    assert "### Shipping a member as an image" in text
+    assert "docker build --build-arg MEMBER=ledger -t ledger ." in text
+    snippet = re.search(r"### Shipping a member as an image.*?```yaml\n(.*?)```", text, re.DOTALL).group(1)
+    service = yaml.safe_load(snippet)["services"]["ledger"]
+    assert service["build"] == {"context": ".", "target": "runtime", "args": {"MEMBER": "ledger"}}
+
+
+def test_member_image_snippet_passes_docker_compose_config(cookies):
+    if shutil.which("docker") is None:
+        pytest.skip("docker CLI not installed")
+    root = bake(cookies, include_docker="yes").project_path
+    text = (root / "README.md").read_text()
+    snippet = re.search(r"### Shipping a member as an image.*?```yaml\n(.*?)```", text, re.DOTALL).group(1)
+    (root / "compose.override.yaml").write_text(snippet)
+    result = subprocess.run(
+        ["docker", "compose", "config", "--quiet"], cwd=root, capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def _add_member(root, name, kind, depends_on="", dependency=None):
+    from cookiecutter.main import cookiecutter
+
+    cookiecutter(
+        str(MEMBER_TEMPLATE),
+        no_input=True,
+        output_dir=str(root / "projects"),
+        extra_context={
+            "project_name": name,
+            "project_kind": kind,
+            "member_dependencies": depends_on,
+            "full_name": "Test Author",
+            "email": "test@example.com",
+        },
+    )
+    if dependency:
+        member = root / "projects" / name.lower().replace(" ", "-")
+        add = subprocess.run(["uv", "add", "--frozen", dependency], cwd=member, capture_output=True, text=True, check=False)
+        assert add.returncode == 0, add.stderr
+
+
+def _uv(args, cwd, venv):
+    env = {**os.environ, "UV_PROJECT_ENVIRONMENT": str(venv)}
+    proc = subprocess.run(
+        ["uv", *args], cwd=cwd, env=env, capture_output=True, text=True, timeout=300, check=False
+    )
+    assert proc.returncode == 0, proc.stderr
+    return proc
+
+
+@pytest.mark.slow
+def test_integration_member_image_build_steps(cookies, tmp_path):
+    """Run the Dockerfile's own uv commands outside Docker, as its build stage would.
+
+    Step 1 sees only the root pyproject.toml and uv.lock; step 2 sees the whole
+    workspace. The result must hold the member and what it uses, nothing else,
+    and must run after the source is gone.
+    """
+    root = bake(cookies, include_docker="yes").project_path
+    _add_member(root, "Geo Core", "library", dependency="attrs")
+    _add_member(root, "Ledger", "application", depends_on="geo-core")
+    _add_member(root, "Notes", "library", dependency="rich")
+    lock = subprocess.run(["uv", "lock"], cwd=root, capture_output=True, text=True, timeout=300, check=False)
+    assert lock.returncode == 0, lock.stderr
+
+    build = _stage(_dockerfile(root), "build")
+    commands = [line.strip().split()[2:] for line in build.splitlines() if line.strip().startswith("uv sync")]
+    assert len(commands) == 2
+    step1, step2 = ([arg.replace('"$MEMBER"', "ledger") for arg in cmd] for cmd in commands)
+    venv = tmp_path / "venv"
+
+    only_lock = tmp_path / "step1"
+    only_lock.mkdir()
+    shutil.copy(root / "pyproject.toml", only_lock)
+    shutil.copy(root / "uv.lock", only_lock)
+    _uv(["sync", *step1], only_lock, venv)
+    site = next((venv / "lib").glob("python*/site-packages"))
+    assert (site / "attr").exists()
+    assert not (site / "ledger").exists()
+
+    source = tmp_path / "step2"
+    shutil.copytree(root, source, ignore=shutil.ignore_patterns(".venv", "__pycache__"))
+    _uv(["sync", *step2], source, venv)
+    installed = {p.name for p in site.iterdir()}
+    assert {"ledger", "geo_core", "attr"} <= installed
+    assert not {"notes", "rich"} & installed
+    assert not [p for p in site.glob("*.pth") if str(source) in p.read_text()], "editable install"
+
+    shutil.rmtree(source)
+    run = subprocess.run([str(venv / "bin" / "ledger")], capture_output=True, text=True, check=False)
+    assert run.returncode == 0, run.stderr
+    assert run.stdout.strip() == "Hello from Ledger."
