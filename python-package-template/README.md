@@ -29,7 +29,7 @@ setup-git`): GitHub has not accepted passwords for git operations since 2021.
 | `include_docs`                          | yes, no                                                      | MkDocs Material + mkdocstrings                                         |
 | `include_precommit`                     | yes, no                                                      | ruff, uv-lock, conventional-commit hooks                               |
 | `include_devcontainer`                  | yes, no                                                      | See below for how this interacts with `include_docker`                |
-| `include_docker`                        | no, yes                                                      | Multi-stage build/runtime/dev Dockerfile                               |
+| `include_docker`                        | no, yes                                                      | Multi-stage build/runtime/dev Dockerfile and `compose.yaml`            |
 | `include_danger`                        | no, yes                                                      | Danger.js in TypeScript, works on both platforms                       |
 | `include_architecture_docs`             | no, yes                                                      | Architecture-document skills and `docs/architecture/` checker          |
 | `publish_to_pypi`                       | no, yes                                                      | Trusted publishing on GitHub, `uv publish` on GitLab                   |
@@ -50,7 +50,7 @@ my-package/
 ├── .github/agents/         # tdd-refactor subagent (Copilot); .claude/ holds the Claude Code copies
 ├── .github/workflows/      # ci.yml + release.yml
 ├── .gitlab-ci.yml          # + .gitlab/ci/{lint,test,build,danger}.yml
-└── Dockerfile, .devcontainer/, scripts/danger/   (optional)
+└── Dockerfile, compose.yaml, .devcontainer/, scripts/danger/   (optional)
 ```
 
 Tasks: `uv run poe fmt | lint | types | test | cov | licenses | docs | check | all`.
@@ -150,10 +150,17 @@ docker build --target dev -t my-package:dev .   # what the devcontainer builds
 `.dockerignore` keeps `.env`, caches and any `node_modules/` out of the build
 context, so `COPY . /app` cannot bake secrets into an image.
 
+`compose.yaml` runs the same stages without long `docker` commands: an `app`
+service for the runtime image, and (with `include_devcontainer=yes`) a `dev`
+service that mounts the project and keeps the container's `.venv` in its own
+volume. Both read an optional `.env`. It ships no other services; the generated
+README shows how to add one, with PostgreSQL as the example.
+
 ## Devcontainer (`include_devcontainer`)
 
-When `include_docker=yes`, the devcontainer builds from the same
-`Dockerfile` as the production image — `target: dev`, a stage with the
+When `include_docker=yes`, the devcontainer starts the `dev` service from
+`compose.yaml`, which builds the same `Dockerfile` as the production image —
+`target: dev`, a stage with the
 same base image and `uv`, plus git/ssh/curl for day-to-day dev work — so
 the dev environment can't drift from what actually ships. There's one
 Dockerfile to maintain, not two.

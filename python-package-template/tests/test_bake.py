@@ -16,6 +16,7 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -283,8 +284,10 @@ def test_dockerfile_dev_stage_matches_devcontainer(cookies):
     dockerfile = (both.project_path / "Dockerfile").read_text()
     assert "FROM python:${PYTHON_VERSION}-slim-bookworm AS dev" in dockerfile
     devcontainer = (both.project_path / ".devcontainer" / "devcontainer.json").read_text()
-    assert '"target": "dev"' in devcontainer
-    assert '"dockerfile": "../Dockerfile"' in devcontainer
+    # The devcontainer reaches the dev stage through compose's `dev` service.
+    assert '"dockerComposeFile": "../compose.yaml"' in devcontainer
+    assert '"service": "dev"' in devcontainer
+    assert _compose(both.project_path)["services"]["dev"]["build"]["target"] == "dev"
 
     no_devcontainer = bake(cookies, include_docker="yes", include_devcontainer="no")
     assert "AS dev" not in (no_devcontainer.project_path / "Dockerfile").read_text()
@@ -1279,3 +1282,65 @@ def test_unattended_report_carries_the_plain_explanations(cookies):
 
 def test_glossary_defines_the_walkthrough(cookies):
     assert "| Walkthrough |" in (bake(cookies).project_path / GLOSSARY).read_text()
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Docker Compose (include_docker)
+# ──────────────────────────────────────────────────────────────────────────
+def _compose(root):
+    return yaml.safe_load((root / "compose.yaml").read_text())
+
+
+def test_compose_file_follows_include_docker(cookies):
+    assert not (bake(cookies, include_docker="no").project_path / "compose.yaml").exists()
+    assert (bake(cookies, include_docker="yes").project_path / "compose.yaml").exists()
+
+
+def test_compose_app_service_runs_the_shipping_image(cookies):
+    root = bake(cookies, include_docker="yes", include_devcontainer="no").project_path
+    services = _compose(root)["services"]
+    assert list(services) == ["app"]
+    assert services["app"]["build"] == {"context": ".", "target": "runtime"}
+    assert services["app"]["env_file"] == [{"path": ".env", "required": False}]
+
+
+def test_compose_dev_service_backs_the_devcontainer(cookies):
+    root = bake(cookies, include_docker="yes", include_devcontainer="yes").project_path
+    compose = _compose(root)
+    dev = compose["services"]["dev"]
+    assert dev["build"] == {"context": ".", "target": "dev"}
+    assert dev["command"] == "sleep infinity"
+    # The container's .venv lives in a volume, so a host .venv cannot shadow it.
+    assert dev["volumes"] == [".:/workspace:cached", "venv:/workspace/.venv"]
+    assert "venv" in compose["volumes"]
+    devcontainer = json.loads((root / ".devcontainer/devcontainer.json").read_text())
+    assert devcontainer["dockerComposeFile"] == "../compose.yaml"
+    assert devcontainer["service"] == "dev"
+    assert devcontainer["runServices"] == ["dev"]
+    assert devcontainer["workspaceFolder"] == "/workspace"
+    assert "build" not in devcontainer
+
+
+@pytest.mark.parametrize("include_devcontainer", ["yes", "no"])
+def test_compose_file_passes_docker_compose_config(cookies, include_devcontainer):
+    """`docker compose config` validates the file without a Docker daemon."""
+    if shutil.which("docker") is None:
+        pytest.skip("docker CLI not installed")
+    root = bake(cookies, include_docker="yes", include_devcontainer=include_devcontainer).project_path
+    result = subprocess.run(
+        ["docker", "compose", "config", "--quiet"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_generated_readme_explains_how_to_add_a_service(cookies):
+    text = " ".join((bake(cookies, include_docker="yes").project_path / "README.md").read_text().split())
+    assert "docker compose run --rm dev" in text
+    assert "### Adding a service" in text
+    assert "depends_on" in text
+    no_docker = (bake(cookies, include_docker="no").project_path / "README.md").read_text()
+    assert "compose.yaml" not in no_docker
