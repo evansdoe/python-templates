@@ -26,6 +26,7 @@ my-workspace/
 ├── .github/agents/         # tdd-refactor subagent; .claude/ holds the Claude Code copies
 ├── scripts/ci/             # discover_projects.py, run_mypy.py, run_tests.py
 ├── mkdocs.yml               # optional: root docs hub (include_docs)
+├── Dockerfile, compose.yaml # optional: one dev container for every member (include_docker)
 └── projects/
     ├── geo-core/
     └── bench-cli/
@@ -103,7 +104,8 @@ with *"is included as a workspace member, but is missing an entry in
 `license`, `python_version`, `min_python_version`, `uv_version` (`latest` or a
 pin, e.g. `0.12.5`), `ci_platform` (github/gitlab/both), `type_checker`
 (mypy/ty/none), `include_docs`, `include_precommit`, `include_devcontainer`,
-`include_danger`, `include_architecture_docs`.
+`include_docker`, `accelerator` (none/nvidia), `include_danger`,
+`include_architecture_docs`.
 
 ## Agent tooling
 
@@ -145,6 +147,22 @@ already importable when `mkdocs serve` runs at the root — no per-member
 `paths:` to keep in sync as members come and go. Document a member's public
 API from the root with `::: module_name`; adding its page to `nav:` is still
 a manual, editorial step.
+
+## Docker (`include_docker`, `accelerator`)
+
+Off by default. When on, the root gets a `Dockerfile` with a `dev` stage
+(the same slim Python base and uv as the package template, plus git, ssh and
+curl), a `.dockerignore`, and a `compose.yaml` whose `dev` service mounts the
+whole workspace, so every member is available in one container. The
+container's `.venv` lives in its own volume, and an optional `.env` is read.
+With `include_devcontainer=yes`, the devcontainer starts that `dev` service
+instead of a generic image. No other services ship; the generated README
+shows how to add one, with PostgreSQL as the example.
+
+`accelerator=nvidia` reserves the host's NVIDIA GPUs for `dev` and gives it
+8 GB of shared memory (without Docker, the devcontainer gets the same through
+`runArgs`). PyTorch's wheels ship their own CUDA runtime, so the image needs no
+CUDA base; the host needs an NVIDIA driver and the NVIDIA Container Toolkit.
 
 ## Danger.js rules (`include_danger`)
 

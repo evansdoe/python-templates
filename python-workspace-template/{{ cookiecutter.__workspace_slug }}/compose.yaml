@@ -1,0 +1,38 @@
+# Containers for {{ cookiecutter.__workspace_slug }}, built from the one Dockerfile.
+#
+#   docker compose run --rm dev bash   # a shell with every member installed
+#
+# Settings and secrets go in .env next to this file: optional, ignored by git,
+# and kept out of every image by .dockerignore. To add a service such as a
+# database, see "Adding a service" in README.md.
+
+services:
+  # The whole workspace, for development{% if cookiecutter.include_devcontainer == "yes" %}; backs .devcontainer/devcontainer.json{% endif %}.
+  dev:
+    build:
+      context: .
+      target: dev
+    command: sleep infinity
+    env_file:
+      - path: .env
+        required: false
+{%- if cookiecutter.accelerator == "nvidia" %}
+    # PyTorch's data-loader workers pass batches through /dev/shm, which
+    # Docker limits to 64 MB by default. Raise this if workers run out.
+    shm_size: "8gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+{%- endif %}
+    volumes:
+      - .:/workspace:cached
+      # The container's own virtual environment, so a .venv made on the host
+      # (possibly for another operating system) cannot shadow it.
+      - venv:/workspace/.venv
+
+volumes:
+  venv:
