@@ -16,6 +16,7 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -1185,3 +1186,103 @@ def test_unattended_report_carries_the_plain_explanations(cookies):
 
 def test_glossary_defines_the_walkthrough(cookies):
     assert "| Walkthrough |" in (bake(cookies).project_path / GLOSSARY).read_text()
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Docker (include_docker): one development container for the whole workspace
+# ──────────────────────────────────────────────────────────────────────────
+DOCKER_FILES = ("Dockerfile", ".dockerignore", "compose.yaml")
+NVIDIA_RESERVATION = {
+    "resources": {"reservations": {"devices": [{"driver": "nvidia", "count": "all", "capabilities": ["gpu"]}]}}
+}
+OPTIONAL_ENV = [{"path": ".env", "required": False}]
+
+
+def _compose(root):
+    return yaml.safe_load((root / "compose.yaml").read_text())
+
+
+def _devcontainer(root):
+    return json.loads((root / ".devcontainer/devcontainer.json").read_text())
+
+
+def test_docker_files_follow_include_docker(cookies):
+    off = bake(cookies).project_path
+    on = bake(cookies, include_docker="yes").project_path
+    for name in DOCKER_FILES:
+        assert not (off / name).exists(), name
+        assert (on / name).exists(), name
+
+
+def test_dockerfile_has_a_dev_stage(cookies):
+    text = (bake(cookies, include_docker="yes").project_path / "Dockerfile").read_text()
+    assert "ARG UV_VERSION=latest" in text
+    assert "FROM python:${PYTHON_VERSION}-slim-bookworm AS dev" in text
+
+
+@pytest.mark.parametrize("include_devcontainer", ["yes", "no"])
+def test_compose_dev_service_mounts_the_whole_workspace(cookies, include_devcontainer):
+    root = bake(cookies, include_docker="yes", include_devcontainer=include_devcontainer).project_path
+    compose = _compose(root)
+    assert list(compose["services"]) == ["dev"]
+    dev = compose["services"]["dev"]
+    assert dev["build"] == {"context": ".", "target": "dev"}
+    assert dev["command"] == "sleep infinity"
+    assert dev["env_file"] == OPTIONAL_ENV
+    assert dev["volumes"] == [".:/workspace:cached", "venv:/workspace/.venv"]
+    assert "venv" in compose["volumes"]
+
+
+def test_devcontainer_starts_the_compose_dev_service(cookies):
+    with_docker = _devcontainer(bake(cookies, include_docker="yes").project_path)
+    assert with_docker["dockerComposeFile"] == "../compose.yaml"
+    assert with_docker["service"] == "dev"
+    assert with_docker["runServices"] == ["dev"]
+    assert with_docker["workspaceFolder"] == "/workspace"
+    assert "image" not in with_docker
+    assert with_docker["postCreateCommand"].startswith("uv sync --all-packages --all-groups")
+    without = _devcontainer(bake(cookies).project_path)
+    assert without["image"].startswith("mcr.microsoft.com/devcontainers/python:")
+    assert "dockerComposeFile" not in without
+
+
+def test_no_gpu_settings_by_default(cookies):
+    dev = _compose(bake(cookies, include_docker="yes").project_path)["services"]["dev"]
+    assert "deploy" not in dev
+    assert "shm_size" not in dev
+    assert "runArgs" not in _devcontainer(bake(cookies).project_path)
+
+
+def test_nvidia_accelerator_reserves_the_gpus(cookies):
+    dev = _compose(bake(cookies, include_docker="yes", accelerator="nvidia").project_path)["services"]["dev"]
+    assert dev["deploy"] == NVIDIA_RESERVATION
+    assert dev["shm_size"] == "8gb"
+    without_docker = _devcontainer(bake(cookies, accelerator="nvidia").project_path)
+    assert without_docker["runArgs"] == ["--gpus=all", "--shm-size=8g"]
+
+
+@pytest.mark.parametrize("accelerator", ["none", "nvidia"])
+def test_compose_file_passes_docker_compose_config(cookies, accelerator):
+    """`docker compose config` validates the file without a Docker daemon."""
+    if shutil.which("docker") is None:
+        pytest.skip("docker CLI not installed")
+    root = bake(cookies, include_docker="yes", accelerator=accelerator).project_path
+    result = subprocess.run(
+        ["docker", "compose", "config", "--quiet"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_generated_readme_explains_the_dev_container(cookies):
+    text = " ".join((bake(cookies, include_docker="yes").project_path / "README.md").read_text().split())
+    for phrase in ("docker compose run --rm dev bash", "uv sync --all-packages --all-groups",
+                   "### Adding a service", "depends_on", "/var/lib/postgresql"):  # fmt: skip
+        assert phrase in text, phrase
+    assert "NVIDIA" not in text
+    gpu = (bake(cookies, include_docker="yes", accelerator="nvidia").project_path / "README.md").read_text()
+    assert "NVIDIA Container Toolkit" in " ".join(gpu.split())
+    assert "compose.yaml" not in (bake(cookies).project_path / "README.md").read_text()

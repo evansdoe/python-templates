@@ -41,6 +41,14 @@
     "yes",
     "no"
   ],
+  "include_docker": [
+    "no",
+    "yes"
+  ],
+  "accelerator": [
+    "none",
+    "nvidia"
+  ],
   "include_danger": [
     "no",
     "yes"

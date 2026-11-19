@@ -73,6 +73,71 @@ uv sync --all-packages --all-groups
 
 Run a member's own entry point with `uv run --package <name> <command>`.
 
+{%- if cookiecutter.include_docker == "yes" %}
+## Containers
+
+`compose.yaml` has one development container for the whole workspace, built
+from the `dev` stage of the `Dockerfile`:
+
+```bash
+docker compose run --rm dev bash         # a shell in the container
+uv sync --all-packages --all-groups      # inside it: install every member
+```
+
+The workspace is mounted at `/workspace`, and the container keeps its `.venv`
+in its own volume, so the install survives restarts and a `.venv` made on the
+host never gets in the way.{% if cookiecutter.include_devcontainer == "yes" %} The devcontainer uses the same `dev` service and runs
+the `uv sync` for you.{% endif %}
+
+Settings and secrets go in a `.env` file next to `compose.yaml`. It is
+optional, git ignores it, and `.dockerignore` keeps it out of every image.
+The optional `.env` needs Docker Compose 2.24 or later.
+{%- if cookiecutter.accelerator == "nvidia" %}
+
+### GPUs
+
+The `dev` service reserves every NVIDIA GPU on the host and gets 8 GB of
+shared memory, which PyTorch's data-loader workers use to pass batches (raise
+`shm_size` in `compose.yaml` if they run out). The image needs no CUDA of its
+own: PyTorch's wheels bring their CUDA runtime with them. The host needs an
+NVIDIA driver and the NVIDIA Container Toolkit, on Linux or on Windows with
+WSL 2; Docker on macOS cannot pass a GPU into a container. To check, with
+PyTorch installed in a member:
+
+```bash
+docker compose run --rm dev uv run python -c "import torch; print(torch.cuda.is_available())"
+```
+{%- endif %}
+
+### Adding a service
+
+A service the members need, such as a database, is a new entry under
+`services:`, and `depends_on` starts it before `dev`. For PostgreSQL, add
+these lines to `compose.yaml`:
+
+```yaml
+services:
+  dev:
+    depends_on:
+      - db
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+volumes:
+  pgdata:
+```
+
+Put `POSTGRES_PASSWORD=...` in `.env`, which Compose reads. The containers
+reach the database at the host name `db`. Pin the image to a major version,
+as here, so that a rebuild never upgrades the database unannounced; from
+PostgreSQL 18 on, the data volume belongs at `/var/lib/postgresql`, not
+`/var/lib/postgresql/data`.
+
+{% endif -%}
 ## How CI works
 
 Lint, type checks and the license audit run **once** at the root over all

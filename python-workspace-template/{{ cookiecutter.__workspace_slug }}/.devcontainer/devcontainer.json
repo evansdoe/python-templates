@@ -1,9 +1,19 @@
 {
     "name": "{{ cookiecutter.__workspace_slug }}",
+    {%- if cookiecutter.include_docker == "yes" %}
+    "dockerComposeFile": "../compose.yaml",
+    "service": "dev",
+    "runServices": ["dev"],
+    "workspaceFolder": "/workspace",
+    {%- else %}
     "image": "mcr.microsoft.com/devcontainers/python:{{ cookiecutter.python_version }}-bookworm",
     "features": {
         "ghcr.io/va-h/devcontainers-features/uv:1": { "version": "latest" }
     },
+    {%- if cookiecutter.accelerator == "nvidia" %}
+    "runArgs": ["--gpus=all", "--shm-size=8g"],
+    {%- endif %}
+    {%- endif %}
     "customizations": {
         "vscode": {
             "extensions": [

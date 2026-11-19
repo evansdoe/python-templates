@@ -12,6 +12,7 @@ SLUG = "{{ cookiecutter.__workspace_slug }}"
 DOCS = "{{ cookiecutter.include_docs }}" == "yes"
 PRECOMMIT = "{{ cookiecutter.include_precommit }}" == "yes"
 DEVCONTAINER = "{{ cookiecutter.include_devcontainer }}" == "yes"
+DOCKER = "{{ cookiecutter.include_docker }}" == "yes"
 DANGER = "{{ cookiecutter.include_danger }}" == "yes"
 APPLICATION_ROOT = "{{ cookiecutter.root_kind }}" == "application"
 ARCHITECTURE_DOCS = "{{ cookiecutter.include_architecture_docs }}" == "yes"
@@ -64,6 +65,8 @@ if not PRECOMMIT:
     drop(".pre-commit-config.yaml")
 if not DEVCONTAINER:
     drop(".devcontainer")
+if not DOCKER:
+    drop("Dockerfile", ".dockerignore", "compose.yaml")
 if not APPLICATION_ROOT:
     drop("src", "tests")
 
