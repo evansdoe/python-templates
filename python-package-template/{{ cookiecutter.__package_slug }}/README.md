@@ -76,6 +76,22 @@ docker compose run --rm dev bash     # a shell in the development image
 Settings and secrets go in a `.env` file next to `compose.yaml`. It is
 optional, git ignores it, and `.dockerignore` keeps it out of every image.
 The optional `.env` needs Docker Compose 2.24 or later.
+{%- if cookiecutter.accelerator == "nvidia" %}
+
+### GPUs
+
+The services reserve every NVIDIA GPU on the host and get 8 GB of shared
+memory, which PyTorch's data-loader workers use to pass batches (raise
+`shm_size` in `compose.yaml` if they run out). The image needs no CUDA of its
+own: PyTorch's wheels bring their CUDA runtime with them. The host needs an
+NVIDIA driver and the NVIDIA Container Toolkit, on Linux or on Windows with
+WSL 2; Docker on macOS cannot pass a GPU into a container. To check, with
+PyTorch installed:
+
+```bash
+docker compose run --rm app python -c "import torch; print(torch.cuda.is_available())"
+```
+{%- endif %}
 
 ### Adding a service
 

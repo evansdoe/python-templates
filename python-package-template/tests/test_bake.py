@@ -1344,3 +1344,53 @@ def test_generated_readme_explains_how_to_add_a_service(cookies):
     assert "depends_on" in text
     no_docker = (bake(cookies, include_docker="no").project_path / "README.md").read_text()
     assert "compose.yaml" not in no_docker
+
+
+NVIDIA_RESERVATION = {
+    "resources": {"reservations": {"devices": [{"driver": "nvidia", "count": "all", "capabilities": ["gpu"]}]}}
+}
+
+
+def test_no_gpu_settings_by_default(cookies):
+    root = bake(cookies, include_docker="yes").project_path
+    for service in _compose(root)["services"].values():
+        assert "deploy" not in service
+        assert "shm_size" not in service
+
+
+def test_nvidia_accelerator_reserves_the_gpus_in_compose(cookies):
+    root = bake(cookies, include_docker="yes", accelerator="nvidia").project_path
+    services = _compose(root)["services"]
+    for name in ("app", "dev"):
+        assert services[name]["deploy"] == NVIDIA_RESERVATION, name
+        assert services[name]["shm_size"] == "8gb", name
+
+
+def test_nvidia_accelerator_without_docker_passes_the_gpus_to_the_devcontainer(cookies):
+    root = bake(cookies, include_docker="no", accelerator="nvidia").project_path
+    devcontainer = json.loads((root / ".devcontainer/devcontainer.json").read_text())
+    assert devcontainer["runArgs"] == ["--gpus=all", "--shm-size=8g"]
+    no_gpu = bake(cookies, include_docker="no").project_path
+    assert "runArgs" not in json.loads((no_gpu / ".devcontainer/devcontainer.json").read_text())
+
+
+def test_nvidia_compose_file_passes_docker_compose_config(cookies):
+    if shutil.which("docker") is None:
+        pytest.skip("docker CLI not installed")
+    root = bake(cookies, include_docker="yes", accelerator="nvidia").project_path
+    result = subprocess.run(
+        ["docker", "compose", "config", "--quiet"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_generated_readme_names_what_the_gpu_host_needs(cookies):
+    text = " ".join((bake(cookies, include_docker="yes", accelerator="nvidia").project_path / "README.md").read_text().split())
+    assert "NVIDIA Container Toolkit" in text
+    assert "CUDA" in text
+    plain = (bake(cookies, include_docker="yes").project_path / "README.md").read_text()
+    assert "NVIDIA" not in plain

@@ -9,6 +9,9 @@
     "features": {
         "ghcr.io/va-h/devcontainers-features/uv:1": { "version": "latest" }
     },
+    {%- if cookiecutter.accelerator == "nvidia" %}
+    "runArgs": ["--gpus=all", "--shm-size=8g"],
+    {%- endif %}
     {%- endif %}
     "customizations": {
         "vscode": {

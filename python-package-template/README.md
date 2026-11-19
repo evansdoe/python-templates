@@ -30,6 +30,7 @@ setup-git`): GitHub has not accepted passwords for git operations since 2021.
 | `include_precommit`                     | yes, no                                                      | ruff, uv-lock, conventional-commit hooks                               |
 | `include_devcontainer`                  | yes, no                                                      | See below for how this interacts with `include_docker`                |
 | `include_docker`                        | no, yes                                                      | Multi-stage build/runtime/dev Dockerfile and `compose.yaml`            |
+| `accelerator`                           | none, nvidia                                                 | NVIDIA GPU access in `compose.yaml`, or in the devcontainer without Docker |
 | `include_danger`                        | no, yes                                                      | Danger.js in TypeScript, works on both platforms                       |
 | `include_architecture_docs`             | no, yes                                                      | Architecture-document skills and `docs/architecture/` checker          |
 | `publish_to_pypi`                       | no, yes                                                      | Trusted publishing on GitHub, `uv publish` on GitLab                   |
@@ -155,6 +156,12 @@ service for the runtime image, and (with `include_devcontainer=yes`) a `dev`
 service that mounts the project and keeps the container's `.venv` in its own
 volume. Both read an optional `.env`. It ships no other services; the generated
 README shows how to add one, with PostgreSQL as the example.
+
+With `accelerator=nvidia`, both services reserve the host's NVIDIA GPUs and
+get 8 GB of shared memory for PyTorch's data-loader workers; without Docker,
+the devcontainer gets the same through `runArgs`. The base image stays
+`python:*-slim`, because PyTorch's wheels ship their own CUDA runtime; the
+host needs an NVIDIA driver and the NVIDIA Container Toolkit.
 
 ## Devcontainer (`include_devcontainer`)
 
