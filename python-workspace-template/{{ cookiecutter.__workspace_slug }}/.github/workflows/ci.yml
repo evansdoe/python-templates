@@ -100,7 +100,7 @@ jobs:
           version: {% raw %}${{ env.UV_VERSION }}{% endraw %}
           enable-cache: true
       - run: uv sync --all-packages --no-default-groups --group license
-      - run: uv run --no-sync licensecheck
+      - run: uv run --no-sync python scripts/ci/run_licensecheck.py
 {%- if cookiecutter.include_danger == "yes" %}
 
   danger:
