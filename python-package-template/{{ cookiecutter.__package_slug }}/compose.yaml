@@ -17,6 +17,18 @@ services:
     env_file:
       - path: .env
         required: false
+{%- if cookiecutter.accelerator == "nvidia" %}
+    # PyTorch's data-loader workers pass batches through /dev/shm, which
+    # Docker limits to 64 MB by default. Raise this if workers run out.
+    shm_size: "8gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+{%- endif %}
 {%- if cookiecutter.include_devcontainer == "yes" %}
 
   # Backs .devcontainer/devcontainer.json; kept running for the editor.
@@ -28,6 +40,18 @@ services:
     env_file:
       - path: .env
         required: false
+{%- if cookiecutter.accelerator == "nvidia" %}
+    # PyTorch's data-loader workers pass batches through /dev/shm, which
+    # Docker limits to 64 MB by default. Raise this if workers run out.
+    shm_size: "8gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+{%- endif %}
     volumes:
       - .:/workspace:cached
       # The container's own virtual environment, so a .venv made on the host
