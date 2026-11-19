@@ -1,11 +1,9 @@
 {
     "name": "{{ cookiecutter.__package_slug }}",
     {%- if cookiecutter.include_docker == "yes" %}
-    "build": {
-        "context": "..",
-        "dockerfile": "../Dockerfile",
-        "target": "dev"
-    },
+    "dockerComposeFile": "../compose.yaml",
+    "service": "dev",
+    "runServices": ["dev"],
     {%- else %}
     "image": "mcr.microsoft.com/devcontainers/python:{{ cookiecutter.python_version }}-bookworm",
     "features": {

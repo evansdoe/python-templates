@@ -60,6 +60,53 @@ For GitLab, add a project access token (`api` scope, Reporter role) as the maske
 variable `DANGER_GITLAB_API_TOKEN`. GitHub Actions uses the built-in `GITHUB_TOKEN`.
 {%- endif %}
 {%- endif %}
+{%- if cookiecutter.include_docker == "yes" %}
+
+## Containers
+
+`compose.yaml` builds the images from the one `Dockerfile`:
+
+```bash
+docker compose up --build app        # run the shipping image
+{%- if cookiecutter.include_devcontainer == "yes" %}
+docker compose run --rm dev bash     # a shell in the development image
+{%- endif %}
+```
+
+Settings and secrets go in a `.env` file next to `compose.yaml`. It is
+optional, git ignores it, and `.dockerignore` keeps it out of every image.
+The optional `.env` needs Docker Compose 2.24 or later.
+
+### Adding a service
+
+A service the package needs at run time, such as a database, is a new entry
+under `services:`, and `depends_on` starts it before `app`. For PostgreSQL,
+add these lines to `compose.yaml`:
+
+```yaml
+services:
+  app:
+    depends_on:
+      - db
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+volumes:
+  pgdata:
+```
+
+Put `POSTGRES_PASSWORD=...` in `.env`, which Compose reads. The containers
+reach the database at the host name `db`.
+{%- if cookiecutter.include_devcontainer == "yes" %} Give `dev` the same
+`depends_on` to use the database while developing.
+{%- endif %} Pin the image to a major version, as here, so that a rebuild never
+upgrades the database unannounced; from PostgreSQL 18 on, the data volume
+belongs at `/var/lib/postgresql`, not `/var/lib/postgresql/data`.
+{%- endif %}
 
 ## License
 

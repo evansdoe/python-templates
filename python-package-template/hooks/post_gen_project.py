@@ -65,7 +65,7 @@ if not OPTIONS["precommit"]:
 if not OPTIONS["devcontainer"]:
     drop(".devcontainer")
 if not OPTIONS["docker"]:
-    drop("Dockerfile", ".dockerignore")
+    drop("Dockerfile", ".dockerignore", "compose.yaml")
 
 scripts = ROOT / "scripts"
 if scripts.is_dir() and not any(scripts.iterdir()):

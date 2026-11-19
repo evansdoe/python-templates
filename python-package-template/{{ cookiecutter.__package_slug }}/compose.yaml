@@ -1,0 +1,39 @@
+# Containers for {{ cookiecutter.__package_slug }}, built from the one Dockerfile.
+#
+#   docker compose up --build app      # run the shipping image
+{%- if cookiecutter.include_devcontainer == "yes" %}
+#   docker compose run --rm dev bash   # a shell in the development image
+{%- endif %}
+#
+# Settings and secrets go in .env next to this file: optional, ignored by git,
+# and kept out of every image by .dockerignore. To add a service such as a
+# database, see "Adding a service" in README.md.
+
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+    env_file:
+      - path: .env
+        required: false
+{%- if cookiecutter.include_devcontainer == "yes" %}
+
+  # Backs .devcontainer/devcontainer.json; kept running for the editor.
+  dev:
+    build:
+      context: .
+      target: dev
+    command: sleep infinity
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - .:/workspace:cached
+      # The container's own virtual environment, so a .venv made on the host
+      # (possibly for another operating system) cannot shadow it.
+      - venv:/workspace/.venv
+
+volumes:
+  venv:
+{%- endif %}
