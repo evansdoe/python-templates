@@ -93,6 +93,9 @@ READMEs name every option and agent file. A separate
 [`integration.yml`](.github/workflows/integration.yml) workflow bakes a
 workspace plus two members — one depending on the other — and runs
 `uv sync` / `uv lock --check` over the assembled result, since that pairing
-can't be verified by testing either template alone. All of this runs in CI
+can't be verified by testing either template alone. And
+[`docker.yml`](.github/workflows/docker.yml) builds and runs the generated
+Docker images: the package's shipping image and dev container, and a
+workspace member's image and the workspace dev container. All of this runs in CI
 on every push and PR, scoped by path so a change to one template doesn't
 trigger the others' workflows.

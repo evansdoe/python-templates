@@ -1,0 +1,140 @@
+# Build and run the Docker images the templates generate.
+#
+# The bake tests check the Dockerfiles and compose files as text and with
+# `docker compose config`, which needs no Docker daemon. Only a real build
+# shows that the images work, and GitHub's runners have Docker: this workflow
+# bakes a package and a workspace, builds their images and runs them.
+
+name: Docker images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "python-package-template/*/Dockerfile"
+      - "python-package-template/*/.dockerignore"
+      - "python-package-template/*/compose.yaml"
+      - "python-package-template/*/pyproject.toml"
+      - "python-package-template/cookiecutter.json"
+      - "python-package-template/hooks/**"
+      - "python-workspace-template/*/Dockerfile"
+      - "python-workspace-template/*/.dockerignore"
+      - "python-workspace-template/*/compose.yaml"
+      - "python-workspace-template/*/pyproject.toml"
+      - "python-workspace-template/cookiecutter.json"
+      - "python-workspace-template/hooks/**"
+      - "python-workspace-member/**"
+      - ".github/workflows/docker.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "python-package-template/*/Dockerfile"
+      - "python-package-template/*/.dockerignore"
+      - "python-package-template/*/compose.yaml"
+      - "python-package-template/*/pyproject.toml"
+      - "python-package-template/cookiecutter.json"
+      - "python-package-template/hooks/**"
+      - "python-workspace-template/*/Dockerfile"
+      - "python-workspace-template/*/.dockerignore"
+      - "python-workspace-template/*/compose.yaml"
+      - "python-workspace-template/*/pyproject.toml"
+      - "python-workspace-template/cookiecutter.json"
+      - "python-workspace-template/hooks/**"
+      - "python-workspace-member/**"
+      - ".github/workflows/docker.yml"
+  workflow_dispatch:
+
+jobs:
+  package:
+    name: Package template images
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: baked/docker-check
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Install Python
+        working-directory: .
+        run: uv python install 3.14
+
+      - name: Bake a package with Docker and the devcontainer
+        working-directory: .
+        run: |
+          uvx cookiecutter python-package-template --no-input --output-dir baked \
+            package_name="Docker Check" include_docker=yes include_devcontainer=yes
+
+      - name: Lock its dependencies (the image builds with --locked)
+        run: uv lock
+
+      - name: Build the shipping image and run it (it prints the version)
+        run: |
+          docker compose build app
+          test "$(docker compose run --rm -T app)" = "0.1.0"
+
+      - name: The shipping image runs as a non-root user
+        run: test "$(docker compose run --rm -T app id -u)" = "1000"
+
+      - name: The dev container installs and tests the package
+        run: |
+          docker compose build dev
+          docker compose run --rm -T dev sh -c "uv sync --all-groups && uv run pytest -q"
+
+  workspace:
+    name: Workspace template images
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: baked/docker-check
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Install Python
+        working-directory: .
+        run: uv python install 3.14
+
+      - name: Bake a workspace with Docker, a library and an application using it
+        working-directory: .
+        run: |
+          uvx cookiecutter python-workspace-template --no-input --output-dir baked \
+            workspace_name="Docker Check" include_docker=yes
+          uvx cookiecutter python-workspace-member --no-input \
+            --output-dir baked/docker-check/projects \
+            project_name="Geo Core" project_kind=library
+          uvx cookiecutter python-workspace-member --no-input \
+            --output-dir baked/docker-check/projects \
+            project_name="Ledger" project_kind=application member_dependencies=geo-core
+
+      - name: Lock the workspace (the image builds with --locked)
+        run: uv lock
+
+      - name: Build an image for one member and run it
+        run: |
+          docker build --build-arg MEMBER=ledger -t ledger .
+          test "$(docker run --rm ledger)" = "Hello from Ledger."
+          test "$(docker run --rm ledger id -u)" = "1000"
+
+      - name: The member image holds the virtual environment, not the source
+        run: test -z "$(docker run --rm ledger find /app -mindepth 1 -maxdepth 1 ! -name .venv)"
+
+      - name: A build without MEMBER fails with a clear message
+        run: |
+          if docker build --progress=plain . 2> build.log; then
+            echo "The image built without MEMBER" >&2
+            exit 1
+          fi
+          grep -q "Pass the member to build" build.log
+
+      - name: The dev container installs every member
+        run: |
+          docker compose build dev
+          docker compose run --rm -T dev sh -c \
+            "uv sync --all-packages --all-groups && uv run python -c 'import ledger, geo_core'"
