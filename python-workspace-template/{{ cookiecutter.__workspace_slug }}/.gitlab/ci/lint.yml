@@ -27,4 +27,4 @@ licenses:
   stage: lint
   script:
     - uv sync --all-packages --no-default-groups --group license
-    - uv run --no-sync licensecheck
+    - uv run --no-sync python scripts/ci/run_licensecheck.py
