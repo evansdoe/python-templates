@@ -72,8 +72,7 @@ uv sync --all-packages --all-groups
 | Everything | `uv run poe all` |
 
 Run a member's own entry point with `uv run --package <name> <command>`.
-
-{%- if cookiecutter.include_docker == "yes" %}
+{% if cookiecutter.include_docker == "yes" %}
 ## Containers
 
 `compose.yaml` has one development container for the whole workspace, built
@@ -164,8 +163,7 @@ reach the database at the host name `db`. Pin the image to a major version,
 as here, so that a rebuild never upgrades the database unannounced; from
 PostgreSQL 18 on, the data volume belongs at `/var/lib/postgresql`, not
 `/var/lib/postgresql/data`.
-
-{% endif -%}
+{% endif %}
 ## How CI works
 
 Lint, type checks and the license audit run **once** at the root over all
